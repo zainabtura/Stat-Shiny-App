@@ -207,20 +207,32 @@ input[type='file'] {
   border: 0;
 }
 
+/* Hide the green rectangle (file-name-display) */
 .file-name-display {
-  font-size: 13px;
-  font-weight: 500;
-  color: #059669;
-  padding: 10px 14px;
-  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
-  border-radius: 8px;
-  margin-top: 12px;
-  display: none;
-  border: 1px solid #6ee7b7;
+  display: none !important;
 }
 
-.file-name-display.active {
-  display: block;
+/* Style the gray filename box */
+.file-upload-wrapper .shiny-input-container {
+  width: 100%;
+}
+
+.file-upload-wrapper .form-control {
+  border-radius: 8px !important;
+  font-size: 13px;
+  font-weight: 500;
+  color: #6b7280;
+  padding: 8px 12px;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  text-align: center;
+}
+
+/* Keep and style the progress bar (Upload complete) */
+.file-upload-wrapper .progress {
+  margin-top: 8px;
+  border-radius: 8px;
+  height: auto;
 }
 
 /* ========== FORM CONTROLS ========== */
