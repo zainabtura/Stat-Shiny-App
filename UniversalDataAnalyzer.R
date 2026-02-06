@@ -534,9 +534,6 @@ input[type='number']:focus {
   border-radius: 12px;
   padding: 16px 20px;
   margin-bottom: 20px;
-  display: flex;
-  align-items: start;
-  gap: 14px;
   font-size: 14px;
   line-height: 1.6;
   color: #1e40af;
@@ -1226,8 +1223,8 @@ server <- function(input, output, session) {
               
               div(class = paste("info-card", cor_class),
                   HTML(paste0(
-                    "<strong>", row$Var1, " ↔ ", row$Var2, "</strong><br>",
-                    "Correlation: <strong>", cor_val, "</strong>"
+                    "<div><strong>", row$Var1, " ↔ ", row$Var2, "</strong></div>",
+                    "<div style='margin-top: 6px;'>Correlation: <strong>", cor_val, "</strong></div>"
                   ))
               )
             })
