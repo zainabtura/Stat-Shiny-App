@@ -284,14 +284,23 @@ input[type='number']:focus {
 .checkbox {
   display: flex;
   align-items: center;
-  margin: 14px 0;
+  margin: 0 0 0 -14px;
+  padding: 0;
   cursor: pointer;
+  gap: 0;
+}
+
+.checkbox .form-group {
+  margin-bottom: 0;
+  display: flex;
+  align-items: center;
 }
 
 .checkbox input[type='checkbox'] {
   width: 20px;
   height: 20px;
-  margin-right: 10px;
+  margin: 0;
+  flex-shrink: 0;
   cursor: pointer;
   accent-color: #6366f1;
 }
@@ -301,7 +310,8 @@ input[type='number']:focus {
   font-weight: 500;
   color: #374151;
   cursor: pointer;
-  margin: 0;
+  margin: 0 0 0 10px;
+  line-height: 20px;
 }
 
 /* ========== BUTTONS ========== */
