@@ -619,6 +619,14 @@ input[type='number']:focus {
   padding: 24px;
   border: 2px solid #e5e7eb;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+}
+
+.test-card-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .test-card h4 {
@@ -629,7 +637,7 @@ input[type='number']:focus {
 }
 
 .interpretation {
-  margin-top: 16px;
+  margin-top: auto;
   padding: 14px 16px;
   background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
   border-radius: 8px;
@@ -1690,63 +1698,71 @@ server <- function(input, output, session) {
       
       div(class = "test-card",
           h4("🔬 Normality Test (Shapiro-Wilk)"),
-          div(class = "kv",
-              div(class = "k", "W statistic"), div(class = "v", round(sh$statistic, 4)),
-              div(class = "k", "p-value"), div(class = "v", fmt_p(sh$p.value)),
-              div(class = "k", "Sample size"), div(class = "v", sum(!is.na(x)))
-          ),
-          div(class = "interpretation",
-              if (is_normal) {
-                "✓ Data appears normally distributed (p > 0.05)"
-              } else {
-                "⚠ Data may not be normal (p < 0.05) — consider non-parametric tests"
-              }
+          div(class = "test-card-body",
+              div(class = "kv",
+                  div(class = "k", "W statistic"), div(class = "v", round(sh$statistic, 4)),
+                  div(class = "k", "p-value"), div(class = "v", fmt_p(sh$p.value)),
+                  div(class = "k", "Sample size"), div(class = "v", sum(!is.na(x)))
+              ),
+              div(class = "interpretation",
+                  if (is_normal) {
+                    "✓ Data appears normally distributed (p > 0.05)"
+                  } else {
+                    "⚠ Data may not be normal (p < 0.05) — consider non-parametric tests"
+                  }
+              )
           )
       ),
       
       div(class = "test-grid",
           div(class = "test-card",
               h4("📈 One-Sample t-test"),
-              div(class = "kv",
-                  div(class = "k", "t statistic"), div(class = "v", round(tt1$statistic, 4)),
-                  div(class = "k", "df"), div(class = "v", round(tt1$parameter, 2)),
-                  div(class = "k", "p-value"), div(class = "v", fmt_p(tt1$p.value)),
-                  div(class = "k", "Sample mean"), div(class = "v", round(tt1$estimate, 4)),
-                  div(class = "k", "95% CI"), div(class = "v",
-                      paste0("[", round(tt1$conf.int[1], 3), ", ", round(tt1$conf.int[2], 3), "]"))
-              ),
-              div(class = "interpretation",
-                  if (tt1$p.value < 0.05) {
-                    paste0("✓ p < 0.05 → Reject H₀: Mean ≠ ", input$mu0)
-                  } else {
-                    paste0("✗ p ≥ 0.05 → Fail to reject H₀: Mean = ", input$mu0)
-                  }
+              div(class = "test-card-body",
+                  div(class = "kv",
+                      div(class = "k", "t statistic"), div(class = "v", round(tt1$statistic, 4)),
+                      div(class = "k", "df"), div(class = "v", round(tt1$parameter, 2)),
+                      div(class = "k", "p-value"), div(class = "v", fmt_p(tt1$p.value)),
+                      div(class = "k", "Sample mean"), div(class = "v", round(tt1$estimate, 4)),
+                      div(class = "k", "95% CI"), div(class = "v",
+                                                      paste0("[", round(tt1$conf.int[1], 3), ", ", round(tt1$conf.int[2], 3), "]"))
+                  ),
+                  div(class = "interpretation",
+                      if (tt1$p.value < 0.05) {
+                        paste0("✓ p < 0.05 → Reject H₀: Mean ≠ ", input$mu0)
+                      } else {
+                        paste0("✗ p ≥ 0.05 → Fail to reject H₀: Mean = ", input$mu0)
+                      }
+                  )
               )
           ),
           
           div(class = "test-card",
               h4("📊 Wilcoxon Signed-Rank"),
-              div(class = "kv",
-                  div(class = "k", "V statistic"), div(class = "v", round(wx1$statistic, 4)),
-                  div(class = "k", "p-value"), div(class = "v", fmt_p(wx1$p.value))
-              ),
-              div(class = "interpretation", "Non-parametric alternative for non-normal data")
+              div(class = "test-card-body",
+                  div(class = "kv",
+                      div(class = "k", "V statistic"), div(class = "v", round(wx1$statistic, 4)),
+                      div(class = "k", "p-value"), div(class = "v", fmt_p(wx1$p.value))
+                  ),
+                  div(class = "interpretation", "Non-parametric alternative for non-normal data")
+              )
           ),
           
           if (two_ok) {
             div(class = "test-card",
                 h4(paste("👥 Two-Sample Comparison")),
-                div(class = "kv",
-                    div(class = "k", "Groups"), div(class = "v", comp_label),
-                    div(class = "k", "t-test p-value"), div(class = "v", fmt_p(tt2$p.value)),
-                    div(class = "k", "Wilcoxon p-value"), div(class = "v", fmt_p(wx2$p.value))
-                ),
-                div(class = "interpretation",
-                    if (tt2$p.value < 0.05) {
-                      "✓ p < 0.05 → Groups differ significantly"
-                    } else {
-                      "✗ p ≥ 0.05 → No significant difference between groups"
-                    }
+                div(class = "test-card-body",
+                    div(class = "kv",
+                        div(class = "k", "Groups"), div(class = "v", comp_label),
+                        div(class = "k", "t-test p-value"), div(class = "v", fmt_p(tt2$p.value)),
+                        div(class = "k", "Wilcoxon p-value"), div(class = "v", fmt_p(wx2$p.value))
+                    ),
+                    div(class = "interpretation",
+                        if (tt2$p.value < 0.05) {
+                          "✓ p < 0.05 → Groups differ significantly"
+                        } else {
+                          "✗ p ≥ 0.05 → No significant difference between groups"
+                        }
+                    )
                 )
             )
           }
