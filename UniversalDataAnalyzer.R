@@ -722,6 +722,12 @@ table.dataTable tbody tr:hover {
     grid-template-columns: 1fr;
   }
 }
+
+/*==========  Hide the Browse button from file input ========== */
+#file-progress,
+.btn-file {
+  display: none !important;
+}
 "
 
 # ==============================
