@@ -565,7 +565,7 @@ input[type='number']:focus {
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 8px 14px;
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .kv .k {
@@ -577,6 +577,8 @@ input[type='number']:focus {
   font-weight: 700;
   color: #111827;
   text-align: right;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 /* ========== PLOTS ========== */
@@ -1753,8 +1755,8 @@ server <- function(input, output, session) {
                 div(class = "test-card-body",
                     div(class = "kv",
                         div(class = "k", "Groups"), div(class = "v", comp_label),
-                        div(class = "k", "t-test p-value"), div(class = "v", fmt_p(tt2$p.value)),
-                        div(class = "k", "Wilcoxon p-value"), div(class = "v", fmt_p(wx2$p.value))
+                        div(class = "k", "t-test p-val"), div(class = "v", fmt_p(tt2$p.value)),
+                        div(class = "k", "Wilcoxon p-val"), div(class = "v", fmt_p(wx2$p.value))
                     ),
                     div(class = "interpretation",
                         if (tt2$p.value < 0.05) {
