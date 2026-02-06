@@ -837,6 +837,58 @@ ui <- fluidPage(
         id = "main_tabs",
         type = "tabs",
         
+        # Home/Welcome
+        tabPanel("🏠 Home",
+                 value = "tab_home",
+                 div(class = "content-card", style = "text-align: center; padding: 60px 40px;",
+                     div(style = "font-size: 48px; margin-bottom: 20px;", "📊"),
+                     h1(style = "font-size: 36px; font-weight: 800; color: #6366f1; margin-bottom: 12px;", 
+                        "Universal Data Analyzer"),
+                     p(style = "font-size: 18px; color: #6b7280; margin-bottom: 40px;",
+                       "Upload, explore, and analyze your data with beautiful visualizations")
+                 ),
+                 
+                 div(class = "content-card",
+                     div(class = "card-header", "✨ Key Features"),
+                     div(class = "stats-grid",
+                         div(class = "stat-card primary",
+                             div(style = "font-size: 32px; margin-bottom: 12px;", "📈"),
+                             div(class = "stat-label", "Descriptive Stats"),
+                             p(style = "font-size: 13px; color: #6b7280; margin-top: 8px;",
+                               "Mean, median, variance, and more")
+                         ),
+                         div(class = "stat-card success",
+                             div(style = "font-size: 32px; margin-bottom: 12px;", "📊"),
+                             div(class = "stat-label", "Visualizations"),
+                             p(style = "font-size: 13px; color: #6b7280; margin-top: 8px;",
+                               "Charts, plots, and graphs")
+                         ),
+                         div(class = "stat-card info",
+                             div(style = "font-size: 32px; margin-bottom: 12px;", "🔗"),
+                             div(class = "stat-label", "Correlations"),
+                             p(style = "font-size: 13px; color: #6b7280; margin-top: 8px;",
+                               "Relationship analysis")
+                         ),
+                         div(class = "stat-card purple",
+                             div(style = "font-size: 32px; margin-bottom: 12px;", "🧪"),
+                             div(class = "stat-label", "Hypothesis Tests"),
+                             p(style = "font-size: 13px; color: #6b7280; margin-top: 8px;",
+                               "Statistical significance")
+                         )
+                     )
+                 ),
+                 
+                 div(class = "content-card",
+                     div(class = "card-header", "🚀 Getting Started"),
+                     div(class = "info-card",
+                         HTML("<strong>Step 1:</strong> Upload your CSV, XLSX, or XLS file using the sidebar<br>
+                        <strong>Step 2:</strong> Explore the automatic summary of your dataset<br>
+                        <strong>Step 3:</strong> Navigate through different analysis tabs<br>
+                        <strong>Step 4:</strong> Download your results and visualizations")
+                     )
+                 )
+        ),
+        
         # Summary
         tabPanel("📌 Summary",
                  value = "tab_summary",
