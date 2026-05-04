@@ -2,17 +2,59 @@ create_app_state <- function(input, output, session) {
   upload_time <- reactiveVal(NULL)
   current_tab <- reactiveVal("tab_home")
   built_regression <- reactiveVal(NULL)
+  selected_sample_dataset <- reactiveVal(NULL)
+
+  sample_dataset_dir <- "datasets"
+  sample_dataset_files <- if (dir.exists(sample_dataset_dir)) {
+    list.files(
+      sample_dataset_dir,
+      pattern = "\\.(csv|xlsx|xls)$",
+      full.names = TRUE,
+      ignore.case = TRUE
+    )
+  } else {
+    character(0)
+  }
+
+  sample_dataset_choices <- setNames(
+    sample_dataset_files,
+    tools::file_path_sans_ext(basename(sample_dataset_files))
+  )
+
+  data_source_info <- reactive({
+    if (!is.null(input$file)) {
+      return(list(
+        kind = "upload",
+        name = input$file$name,
+        path = input$file$datapath,
+        ext = tolower(tools::file_ext(input$file$name))
+      ))
+    }
+
+    sample_path <- selected_sample_dataset()
+    if (!is.null(sample_path) && file.exists(sample_path)) {
+      return(list(
+        kind = "sample",
+        name = basename(sample_path),
+        path = sample_path,
+        ext = tolower(tools::file_ext(sample_path))
+      ))
+    }
+
+    NULL
+  })
 
   data_in <- reactive({
-    req(input$file)
+    source_info <- data_source_info()
+    req(source_info)
 
-    ext <- tools::file_ext(input$file$name)
+    ext <- source_info$ext
 
     df <- NULL
     if (ext == "csv") {
-      df <- readr::read_csv(input$file$datapath, show_col_types = FALSE)
+      df <- readr::read_csv(source_info$path, show_col_types = FALSE)
     } else if (ext %in% c("xlsx", "xls")) {
-      df <- readxl::read_excel(input$file$datapath)
+      df <- readxl::read_excel(source_info$path)
     } else {
       validate("Unsupported file type")
     }
@@ -23,9 +65,13 @@ create_app_state <- function(input, output, session) {
       }
     }
 
-    upload_time(Sys.time())
     df
   })
+
+  observeEvent(data_source_info(), {
+    req(data_source_info())
+    upload_time(Sys.time())
+  }, ignoreInit = TRUE)
 
   numeric_vars <- reactive({
     df <- data_in()
@@ -41,9 +87,12 @@ create_app_state <- function(input, output, session) {
     upload_time = upload_time,
     current_tab = current_tab,
     built_regression = built_regression,
+    data_source_info = data_source_info,
     data_in = data_in,
     numeric_vars = numeric_vars,
-    categorical_vars = categorical_vars
+    categorical_vars = categorical_vars,
+    sample_dataset_choices = sample_dataset_choices,
+    selected_sample_dataset = selected_sample_dataset
   )
 }
 
@@ -82,6 +131,10 @@ register_core_server <- function(input, output, session, state) {
     nav_corrections = "tab_corrections",
     nav_multicollinearity = "tab_multicollinearity",
     nav_model_building = "tab_model_building",
+    nav_influence = "tab_influence",
+    nav_polynomial = "tab_polynomial",
+    nav_spline = "tab_spline",
+    nav_glm = "tab_glm",
     home_study_upload = "tab_upload",
     card_tests = "tab_tests",
     card_adequacy = "tab_adequacy",
@@ -122,7 +175,7 @@ register_core_server <- function(input, output, session, state) {
   })
 
   observe({
-    has_data <- !is.null(input$file)
+    has_data <- !is.null(state$data_source_info())
     nums <- if (has_data) state$numeric_vars() else character(0)
     has_built_regression <- !is.null(state$built_regression())
 
@@ -131,20 +184,9 @@ register_core_server <- function(input, output, session, state) {
     enable_targets(c("nav_descriptive"), has_data)
     enable_targets(c("nav_tests", "card_tests"), length(nums) >= 1)
     enable_targets(c("nav_regression", "nav_indicator"), length(nums) >= 2)
-    enable_targets(c("nav_adequacy", "card_adequacy", "nav_corrections", "card_corrections", "nav_multicollinearity", "card_multicollinearity", "nav_model_building", "card_model_building"), has_built_regression)
-    current_tab <- state$current_tab()
-    allowed_tabs <- c(
-      "tab_home",
-      "tab_upload",
-      if (has_data) "tab_descriptive",
-      if (length(nums) >= 1) "tab_tests",
-      if (length(nums) >= 2) c("tab_regression", "tab_indicator"),
-      if (has_built_regression) c("tab_adequacy", "tab_corrections", "tab_multicollinearity", "tab_model_building")
-    )
-
-    if (!(current_tab %in% allowed_tabs)) {
-      state$current_tab("tab_home")
-    }
+    enable_targets(c("nav_adequacy", "card_adequacy", "nav_corrections", "card_corrections", "nav_multicollinearity", "card_multicollinearity", "nav_model_building", "card_model_building", "nav_influence", "card_influence"), has_built_regression)
+    enable_targets(c("nav_polynomial", "nav_spline"), length(nums) >= 2)
+    enable_targets(c("nav_glm"), has_data)
   })
 
   observeEvent(input$reset_selections, {
@@ -170,12 +212,18 @@ register_core_server <- function(input, output, session, state) {
     state$built_regression(NULL)
   }, ignoreInit = TRUE)
 
+  observeEvent(state$selected_sample_dataset(), {
+    if (!is.null(state$selected_sample_dataset())) {
+      state$built_regression(NULL)
+    }
+  }, ignoreInit = TRUE)
+
   output$var_select_ui <- renderUI({
-    if (is.null(input$file)) {
+    if (is.null(state$data_source_info())) {
       return(
         div(
           class = "helper-text",
-          "Upload a dataset on the Dataset Upload page to populate the variable selectors and study settings."
+          "Load a dataset on the Dataset Upload page to populate the variable selectors and study settings."
         )
       )
     }
@@ -202,12 +250,14 @@ register_core_server <- function(input, output, session, state) {
   })
 
   output$topbar_status_ui <- renderUI({
-    if (is.null(input$file)) {
+    source_info <- state$data_source_info()
+
+    if (is.null(source_info)) {
       div(class = "topbar-status", span("No dataset uploaded"))
     } else {
       div(
         class = "topbar-status",
-        HTML(paste0("<strong>", input$file$name, "</strong>")),
+        HTML(paste0("<strong>", source_info$name, "</strong>")),
         span(paste(nrow(state$data_in()), "rows")),
         span("•"),
         span(paste(ncol(state$data_in()), "columns"))
@@ -329,6 +379,13 @@ register_preview_server <- function(input, output, session, state) {
     state$current_tab("tab_upload")
   }, ignoreInit = TRUE)
 
+  observeEvent(input$load_sample_dataset, {
+    req(input$sample_dataset)
+    if (nzchar(input$sample_dataset)) {
+      state$selected_sample_dataset(input$sample_dataset)
+    }
+  }, ignoreInit = TRUE)
+
   mode_button_map <- c(
     descriptive_mode_summary = "General Summary",
     descriptive_mode_single = "Single Variable Analysis",
@@ -431,6 +488,9 @@ register_preview_server <- function(input, output, session, state) {
   })
 
   output$upload_page_ui <- renderUI({
+    source_info <- state$data_source_info()
+    sample_choices <- c("Choose a sample dataset" = "", state$sample_dataset_choices)
+
     div(
       class = "upload-page",
       div(
@@ -466,6 +526,28 @@ register_preview_server <- function(input, output, session, state) {
             div(id = "file-name-display", class = "file-name-display")
           ),
           div(
+            class = "sample-dataset-card",
+            div(class = "sample-dataset-header",
+                div(class = "upload-card-kicker", "No file handy?"),
+                span(class = "sample-dataset-header-copy", "Use one of the built-in datasets.")
+            ),
+            div(
+              class = "sample-dataset-actions",
+              selectInput(
+                "sample_dataset",
+                NULL,
+                choices = sample_choices,
+                selected = if (!is.null(state$selected_sample_dataset())) state$selected_sample_dataset() else "",
+                width = "100%"
+              ),
+              actionButton(
+                "load_sample_dataset",
+                "Load Sample",
+                class = "btn btn-secondary sample-dataset-button"
+              )
+            )
+          ),
+          div(
             class = "upload-checkbox",
             div(
               class = "upload-checkbox-row",
@@ -482,22 +564,23 @@ register_preview_server <- function(input, output, session, state) {
               )
             )
           ),
-          if (!is.null(input$file)) {
+          if (!is.null(source_info)) {
             actionButton("upload_go_descriptive", "Open Descriptive Analysis", class = "btn btn-success btn-block")
           }
         ),
         div(
           class = "dataset-results",
-          if (is.null(input$file)) {
+          if (is.null(source_info)) {
             div(
               class = "content-card dataset-empty upload-empty-state",
               div(class = "card-header", "Waiting for a dataset"),
               div(class = "upload-empty-kicker", "Nothing uploaded yet"),
-              p("After uploading your file, the app will detect numeric and categorical variables and unlock the relevant studies.")
+              p("Upload your own file or load one of the built-in datasets. The app will detect numeric and categorical variables and unlock the relevant studies.")
               ,
               div(
                 class = "upload-empty-grid",
                 div(class = "upload-empty-item", h4("Accepted Files"), p("CSV, XLSX, and XLS are supported.")),
+                div(class = "upload-empty-item", h4("Built-in Datasets"), p(paste(length(state$sample_dataset_choices), "sample datasets are ready to load."))),
                 div(class = "upload-empty-item", h4("Automatic Detection"), p("Numeric and categorical columns are recognized for you.")),
                 div(class = "upload-empty-item", h4("Next Step"), p("Once loaded, move straight into descriptive analysis."))
               )
@@ -506,7 +589,7 @@ register_preview_server <- function(input, output, session, state) {
             df <- state$data_in()
             div(
               class = "content-card upload-results-card",
-              div(class = "card-header", "Uploaded File"),
+              div(class = "card-header", if (identical(source_info$kind, "sample")) "Sample Dataset" else "Uploaded File"),
               div(
                 class = "info-card success upload-ready-message",
                 HTML("Your dataset is ready. You can stay here to review the preview, or explore it using <strong>Descriptive Analysis</strong>, <strong>Inferential Statistics</strong>, and the regression tabs from the sidebar.")
@@ -515,9 +598,16 @@ register_preview_server <- function(input, output, session, state) {
                 class = "upload-summary-grid",
                 div(
                   class = "upload-stat-card upload-stat-card-file",
-                  div(class = "upload-stat-title", "Source File"),
-                  div(class = "upload-stat-value upload-stat-filename", input$file$name),
-                  div(class = "upload-stat-meta", paste("Uploaded", format(state$upload_time(), "%b %d, %I:%M %p")))
+                  div(class = "upload-stat-title", if (identical(source_info$kind, "sample")) "Sample Dataset" else "Source File"),
+                  div(class = "upload-stat-value upload-stat-filename", source_info$name),
+                  div(
+                    class = "upload-stat-meta",
+                    if (identical(source_info$kind, "sample")) {
+                      paste("Loaded", format(state$upload_time(), "%b %d, %I:%M %p"))
+                    } else {
+                      paste("Uploaded", format(state$upload_time(), "%b %d, %I:%M %p"))
+                    }
+                  )
                 ),
                 div(
                   class = "upload-stat-card upload-stat-card-size",
@@ -550,7 +640,7 @@ register_preview_server <- function(input, output, session, state) {
   })
 
   output$descriptive_page_ui <- renderUI({
-    if (is.null(input$file)) {
+    if (is.null(state$data_source_info())) {
       return(
         div(
           class = "content-card dataset-empty",

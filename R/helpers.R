@@ -13,6 +13,7 @@ library(lmtest)
 library(nortest)
 library(randtests)
 library(MASS)
+library(splines)
 
 get_mode <- function(x) {
   x <- x[!is.na(x)]
@@ -68,7 +69,11 @@ study_catalog <- function() {
       "tab_adequacy",
       "tab_corrections",
       "tab_multicollinearity",
-      "tab_model_building"
+      "tab_model_building",
+      "tab_influence",
+      "tab_polynomial",
+      "tab_spline",
+      "tab_glm"
     ),
     nav_id = c(
       "nav_home",
@@ -80,7 +85,11 @@ study_catalog <- function() {
       "nav_adequacy",
       "nav_corrections",
       "nav_multicollinearity",
-      "nav_model_building"
+      "nav_model_building",
+      "nav_influence",
+      "nav_polynomial",
+      "nav_spline",
+      "nav_glm"
     ),
     card_id = c(
       NA,
@@ -92,7 +101,11 @@ study_catalog <- function() {
       "card_adequacy",
       "card_corrections",
       "card_multicollinearity",
-      "card_model_building"
+      "card_model_building",
+      "card_influence",
+      NA,
+      NA,
+      NA
     ),
     label = c(
       "Home",
@@ -104,7 +117,11 @@ study_catalog <- function() {
       "Model Adequacy",
       "Correct Inadequacies",
       "Multicollinearity",
-      "Model Building"
+      "Model Building",
+      "Influence Diagnostics",
+      "Polynomial Regression",
+      "Spline Regression",
+      "GLM (Logit/Probit/Poisson)"
     ),
     icon = c(
       "home",
@@ -116,7 +133,11 @@ study_catalog <- function() {
       "search",
       "wrench",
       "diagram-project",
-      "sitemap"
+      "sitemap",
+      "bullseye",
+      "superscript",
+      "bezier-curve",
+      "percent"
     ),
     group = c(
       "Overview",
@@ -128,7 +149,11 @@ study_catalog <- function() {
       "Model",
       "Model",
       "Model",
-      "Model"
+      "Model",
+      "Model",
+      "Advanced",
+      "Advanced",
+      "Advanced"
     ),
     description = c(
       "Welcome screen and study selection",
@@ -140,7 +165,11 @@ study_catalog <- function() {
       "Check regression assumptions and diagnostics",
       "Box-Cox, Box-Tidwell, and WLS corrections",
       "Detect multicollinearity with VIF and apply ridge or lasso regression",
-      "Feature selection via best subset and stepwise procedures"
+      "Feature selection via best subset and stepwise procedures",
+      "Leverage, Cook's D, DFFITS, and robust regression (Huber & Bisquare)",
+      "Fit linear, quadratic, and cubic polynomial models with centering and VIF comparison",
+      "Fit piecewise linear, quadratic, and cubic B-spline models with user-defined knots",
+      "Fit logistic (logit/probit) and Poisson regression GLMs with diagnostics and predictions"
     ),
     stringsAsFactors = FALSE
   )

@@ -1,13 +1,13 @@
 register_regression_server <- function(input, output, session, state) {
   current_regression_mode <- reactiveVal("Single Regression")
-
+  
   build_regression_mode_tab <- function(id, title, active = FALSE, disabled = FALSE) {
     tab_class <- paste(
       "btn inferential-tab-button",
       if (active) "is-active" else "",
       if (disabled) "is-disabled" else ""
     )
-
+    
     actionButton(
       id,
       label = span(class = "action-label inferential-tab-title", title),
@@ -16,14 +16,14 @@ register_regression_server <- function(input, output, session, state) {
       disabled = disabled
     )
   }
-
+  
   normalize_regression_frame <- function(df, y_var, x_vars) {
     vars_needed <- c(y_var, x_vars)
     df_model <- df[, vars_needed, drop = FALSE]
     df_model <- df_model[complete.cases(df_model), , drop = FALSE]
     list(df = df_model, vars = vars_needed)
   }
-
+  
   build_explicit_model <- function(df, y_var, x_vars, mode) {
     if (!(length(y_var) == 1 && !is.na(y_var) && nzchar(y_var))) {
       stop("Choose a response variable.")
@@ -34,21 +34,21 @@ register_regression_server <- function(input, output, session, state) {
     if (y_var %in% x_vars) {
       stop("Response variable cannot also be a predictor.")
     }
-
+    
     x_vars <- unique(x_vars)
     model_frame <- normalize_regression_frame(df, y_var, x_vars)
     df_model <- model_frame$df
-
+    
     if (nrow(df_model) < 3) {
       stop("Need at least 3 complete observations to build the model.")
     }
-
+    
     formula_str <- paste0("`", y_var, "` ~ ", paste0("`", x_vars, "`", collapse = " + "))
     formula_obj <- as.formula(formula_str, env = parent.frame())
     model <- lm(formula = formula_obj, data = df_model, y = TRUE, qr = TRUE, model = TRUE)
     model$call$formula <- formula_obj
     model$call$data <- quote(df_model)
-
+    
     list(
       mode = mode,
       model = model,
@@ -59,11 +59,11 @@ register_regression_server <- function(input, output, session, state) {
       built_at = Sys.time()
     )
   }
-
+  
   safe_normality_test <- function(x) {
     x <- x[is.finite(x)]
     n <- length(x)
-
+    
     if (n < 3) {
       return(list(
         label = "Normality Check",
@@ -74,7 +74,7 @@ register_regression_server <- function(input, output, session, state) {
         note = "Need at least 3 residuals for a normality test."
       ))
     }
-
+    
     if (length(unique(round(x, 10))) < 3) {
       return(list(
         label = "Normality Check",
@@ -85,7 +85,7 @@ register_regression_server <- function(input, output, session, state) {
         note = "Residuals do not have enough variation for a stable normality test."
       ))
     }
-
+    
     if (n <= 5000) {
       test <- shapiro.test(x)
       return(list(
@@ -97,7 +97,7 @@ register_regression_server <- function(input, output, session, state) {
         note = NULL
       ))
     }
-
+    
     test <- nortest::ad.test(x)
     list(
       label = "Normality Check",
@@ -108,7 +108,7 @@ register_regression_server <- function(input, output, session, state) {
       note = "Used Anderson-Darling because Shapiro-Wilk only supports sample sizes up to 5000."
     )
   }
-
+  
   regression_metrics <- function(model) {
     y_obs <- model$model[[1]]
     rss <- sum(residuals(model)^2, na.rm = TRUE)
@@ -116,7 +116,7 @@ register_regression_server <- function(input, output, session, state) {
     press_val <- sum((residuals(model) / (1 - hatvalues(model)))^2, na.rm = TRUE)
     tss <- sum((y_obs - mean(y_obs, na.rm = TRUE))^2, na.rm = TRUE)
     pred_r2 <- if (tss > 0) 1 - press_val / tss else NA_real_
-
+    
     list(
       rss = rss,
       mse = mse,
@@ -130,58 +130,58 @@ register_regression_server <- function(input, output, session, state) {
       bic = BIC(model)
     )
   }
-
+  
   built_regression <- reactive({
     state$built_regression()
   })
-
+  
   current_built_model <- reactive({
     model_info <- built_regression()
     req(model_info)
     model_info
   })
-
+  
   active_mode_model <- reactive({
     model_info <- built_regression()
     req(model_info)
     req(identical(model_info$mode, current_regression_mode()))
     model_info
   })
-
+  
   adequacy_model <- reactive({
     current_built_model()$model
   })
-
+  
   adequacy_predictor_df <- reactive({
     model <- adequacy_model()
     mf <- model.frame(model)
-
+    
     if (ncol(mf) < 3) {
       return(NULL)
     }
-
+    
     x_df <- mf[, -1, drop = FALSE]
     x_df <- x_df[, sapply(x_df, is.numeric), drop = FALSE]
-
+    
     if (ncol(x_df) < 2) {
       return(NULL)
     }
-
+    
     x_df
   })
-
+  
   adequacy_pairwise_corr <- reactive({
     x_df <- adequacy_predictor_df()
     req(!is.null(x_df))
-
+    
     cm <- cor(x_df, use = "complete.obs")
     cm[upper.tri(cm, diag = TRUE)] <- NA
-
+    
     idx <- which(!is.na(cm), arr.ind = TRUE)
     if (nrow(idx) == 0) {
       return(NULL)
     }
-
+    
     out <- data.frame(
       Predictor_1 = rownames(cm)[idx[, 1]],
       Predictor_2 = colnames(cm)[idx[, 2]],
@@ -189,25 +189,25 @@ register_regression_server <- function(input, output, session, state) {
       Abs_Correlation = abs(cm[idx]),
       stringsAsFactors = FALSE
     )
-
+    
     out <- out[order(out$Abs_Correlation, decreasing = TRUE), ]
     rownames(out) <- NULL
     out
   })
-
+  
   penalized_data <- reactive({
     built_model <- built_regression()
-
+    
     validate(need(!is.null(built_model), "Build a regression model first on the Regression page."))
     validate(need(identical(built_model$mode, "Multiple Regression"), "Ridge, lasso, and cross-validation are available for the built multiple regression model only."))
     validate(need(length(built_model$x_vars) >= 2, "Penalized regression requires at least 2 predictors."))
     validate(need(requireNamespace("glmnet", quietly = TRUE), "Package 'glmnet' is required for ridge, lasso, and cross-validation."))
-
+    
     dat <- built_model$df[, c(built_model$y_var, built_model$x_vars), drop = FALSE]
     dat <- dat[complete.cases(dat), , drop = FALSE]
-
+    
     validate(need(nrow(dat) >= 10, "Need at least 10 complete observations for penalized regression."))
-
+    
     list(
       x = as.matrix(dat[, built_model$x_vars, drop = FALSE]),
       y = dat[[built_model$y_var]],
@@ -216,21 +216,21 @@ register_regression_server <- function(input, output, session, state) {
       dat = dat
     )
   })
-
+  
   ridge_cv <- reactive({
     pd <- penalized_data()
     glmnet::cv.glmnet(pd$x, pd$y, alpha = 0, standardize = TRUE)
   })
-
+  
   lasso_cv <- reactive({
     pd <- penalized_data()
     glmnet::cv.glmnet(pd$x, pd$y, alpha = 1, standardize = TRUE)
   })
-
+  
   observeEvent(input$regression_mode_single, {
     current_regression_mode("Single Regression")
   }, ignoreInit = TRUE)
-
+  
   observeEvent(input$regression_mode_multiple, {
     if (length(state$numeric_vars()) >= 3) {
       current_regression_mode("Multiple Regression")
@@ -238,15 +238,15 @@ register_regression_server <- function(input, output, session, state) {
       showNotification("Multiple regression needs at least 3 numeric variables.", type = "warning", duration = 3)
     }
   }, ignoreInit = TRUE)
-
+  
   observe({
     req(state$data_in())
-
+    
     if (length(state$numeric_vars()) < 3 && identical(current_regression_mode(), "Multiple Regression")) {
       current_regression_mode("Single Regression")
     }
   })
-
+  
   observeEvent(input$build_slr_model, {
     req(state$data_in())
     tryCatch({
@@ -256,7 +256,7 @@ register_regression_server <- function(input, output, session, state) {
         x_vars = input$slr_x,
         mode = "Single Regression"
       )
-
+      
       state$built_regression(model_info)
       current_regression_mode("Single Regression")
       showNotification("Single regression model built successfully.", type = "message", duration = 2)
@@ -264,14 +264,14 @@ register_regression_server <- function(input, output, session, state) {
       showNotification(conditionMessage(e), type = "error", duration = 4)
     })
   }, ignoreInit = TRUE)
-
+  
   observeEvent(input$build_mlr_model, {
     req(state$data_in())
     if (length(input$mlr_x) < 2) {
       showNotification("Multiple regression needs at least 2 predictors.", type = "warning", duration = 4)
       return()
     }
-
+    
     tryCatch({
       model_info <- build_explicit_model(
         df = state$data_in(),
@@ -279,7 +279,7 @@ register_regression_server <- function(input, output, session, state) {
         x_vars = input$mlr_x,
         mode = "Multiple Regression"
       )
-
+      
       state$built_regression(model_info)
       current_regression_mode("Multiple Regression")
       showNotification("Multiple regression model built successfully.", type = "message", duration = 2)
@@ -287,21 +287,21 @@ register_regression_server <- function(input, output, session, state) {
       showNotification(conditionMessage(e), type = "error", duration = 4)
     })
   }, ignoreInit = TRUE)
-
+  
   output$regression_ui <- renderUI({
     req(state$data_in())
     nums <- state$numeric_vars()
     validate(need(length(nums) >= 2, "Need at least 2 numeric variables for regression analysis."))
-
+    
     built_model <- built_regression()
     selected_mode <- current_regression_mode()
     multiple_available <- length(nums) >= 3
-
+    
     slr_y_choices <- nums
     slr_y_selected <- if (!is.null(input$slr_y) && input$slr_y %in% slr_y_choices) input$slr_y else slr_y_choices[1]
     slr_x_choices <- setdiff(nums, slr_y_selected)
     slr_x_selected <- if (!is.null(input$slr_x) && input$slr_x %in% slr_x_choices) input$slr_x else slr_x_choices[1]
-
+    
     mlr_y_choices <- nums
     mlr_y_selected <- if (!is.null(input$mlr_y) && input$mlr_y %in% mlr_y_choices) input$mlr_y else mlr_y_choices[1]
     mlr_x_choices <- setdiff(nums, mlr_y_selected)
@@ -310,7 +310,7 @@ register_regression_server <- function(input, output, session, state) {
     } else {
       head(mlr_x_choices, 2)
     }
-
+    
     tagList(
       div(
         class = "tests-page-shell regression-page-shell",
@@ -398,11 +398,11 @@ register_regression_server <- function(input, output, session, state) {
       )
     )
   })
-
+  
   slr_data <- reactive({
     model_info <- active_mode_model()
     req(identical(model_info$mode, "Single Regression"))
-
+    
     list(
       model = model_info$model,
       df = model_info$df,
@@ -413,13 +413,13 @@ register_regression_server <- function(input, output, session, state) {
       formula_display = model_info$formula_display
     )
   })
-
+  
   mlr_data <- reactive({
     model_info <- active_mode_model()
     req(identical(model_info$mode, "Multiple Regression"))
     model_info
   })
-
+  
   output$slr_ui <- renderUI({
     m_data <- slr_data()
     model <- m_data$model
@@ -428,7 +428,7 @@ register_regression_server <- function(input, output, session, state) {
     cor_p <- cor.test(m_data$x, m_data$y, method = "pearson")
     cor_s <- cor.test(m_data$x, m_data$y, method = "spearman")
     cor_k <- cor.test(m_data$x, m_data$y, method = "kendall")
-
+    
     tagList(
       div(
         class = "tests-panel regression-lead-panel",
@@ -516,19 +516,19 @@ register_regression_server <- function(input, output, session, state) {
       )
     )
   })
-
+  
   output$slr_anova <- renderDT({
     anova_tbl <- anova(slr_data()$model)
     DT::datatable(anova_tbl, options = list(dom = "t", scrollX = TRUE, autoWidth = FALSE), class = "cell-border stripe hover", rownames = TRUE)
   })
-
+  
   output$slr_coef <- renderDT({
     coef_tbl <- summary(slr_data()$model)$coefficients
     coef_tbl <- cbind(coef_tbl, confint(slr_data()$model))
     colnames(coef_tbl) <- c("Estimate", "Std. Error", "t value", "Pr(>|t|)", "CI 2.5%", "CI 97.5%")
     DT::datatable(round(coef_tbl, 4), options = list(dom = "t", scrollX = TRUE, autoWidth = FALSE), class = "cell-border stripe hover", rownames = TRUE)
   })
-
+  
   output$slr_plot <- renderPlot({
     m <- slr_data()
     plot(m$x, m$y, xlab = m$x_var, ylab = m$y_var, main = paste("Simple Linear Regression:", m$formula_display), pch = 19, col = adjustcolor("#6366f1", alpha.f = 0.6), cex = 1.2, cex.main = 1.4, cex.lab = 1.2, col.main = "#111827")
@@ -536,7 +536,7 @@ register_regression_server <- function(input, output, session, state) {
     grid(col = "gray85", lty = 1)
     legend("topleft", legend = paste0("R² = ", round(summary(m$model)$r.squared, 4)), bty = "n", cex = 1.2, text.col = "#111827")
   })
-
+  
   output$download_slr_plot <- downloadHandler(
     filename = function() paste0("slr_", Sys.Date(), ".png"),
     content = function(file) {
@@ -548,7 +548,7 @@ register_regression_server <- function(input, output, session, state) {
       dev.off()
     }
   )
-
+  
   output$mlr_ui <- renderUI({
     m_data <- mlr_data()
     model <- m_data$model
@@ -557,12 +557,12 @@ register_regression_server <- function(input, output, session, state) {
     x_vars <- m_data$x_vars
     m_summ <- summary(model)
     eval_stats <- regression_metrics(model)
-
+    
     vif_vals <- NULL
     if (length(x_vars) > 1) {
       vif_vals <- tryCatch(car::vif(model), error = function(e) NULL)
     }
-
+    
     tagList(
       div(
         class = "tests-panel regression-lead-panel",
@@ -580,19 +580,19 @@ register_regression_server <- function(input, output, session, state) {
       div(class = "content-card", div(class = "card-header regression-card-header", div(class = "regression-card-title", "📊 Scatter Plot Matrix")), withSpinner(plotOutput("mlr_pairs", height = "600px"), color = "#6366f1", type = 4))
     )
   })
-
+  
   output$mlr_coef <- renderDT({
     coef_tbl <- summary(mlr_data()$model)$coefficients
     coef_tbl <- cbind(coef_tbl, confint(mlr_data()$model))
     colnames(coef_tbl) <- c("Estimate", "Std. Error", "t value", "Pr(>|t|)", "CI 2.5%", "CI 97.5%")
     DT::datatable(round(coef_tbl, 4), options = list(dom = "t", scrollX = TRUE, autoWidth = FALSE), class = "cell-border stripe hover", rownames = TRUE)
   })
-
+  
   output$mlr_anova <- renderDT({
     anova_tbl <- anova(mlr_data()$model)
     DT::datatable(anova_tbl, options = list(dom = "t", scrollX = TRUE, autoWidth = FALSE), class = "cell-border stripe hover", rownames = TRUE)
   })
-
+  
   output$mlr_vif <- renderPlot({
     m <- mlr_data()
     tryCatch({
@@ -606,40 +606,40 @@ register_regression_server <- function(input, output, session, state) {
       text(0.5, 0.5, "VIF cannot be calculated\n(possible perfect collinearity)", cex = 1.5, col = "#ef4444")
     })
   })
-
+  
   output$mlr_pairs <- renderPlot({
     m <- mlr_data()
     pairs(m$df, main = "Scatter Plot Matrix", pch = 19, col = adjustcolor("#6366f1", alpha.f = 0.5), cex = 0.8, col.main = "#111827", cex.main = 1.4)
   })
-
+  
   candidate_model_metrics <- reactive({
     m <- mlr_data()
     x_vars <- m$x_vars
     df <- m$df
     y_var <- m$y_var
-
+    
     if (length(x_vars) < 2) {
       return(NULL)
     }
-
+    
     x_vars_eval <- x_vars[seq_len(min(length(x_vars), 10))]
     full_formula <- as.formula(paste0("`", y_var, "` ~ ", paste0("`", x_vars_eval, "`", collapse = " + ")))
     full_model <- lm(full_formula, data = df)
     sigma2_full <- summary(full_model)$sigma^2
     n <- nrow(model.frame(full_model))
-
+    
     combos <- unlist(
       lapply(seq_along(x_vars_eval), function(k) combn(x_vars_eval, k, simplify = FALSE)),
       recursive = FALSE
     )
-
+    
     out <- lapply(combos, function(vars) {
       form <- as.formula(paste0("`", y_var, "` ~ ", paste0("`", vars, "`", collapse = " + ")))
       fit <- lm(form, data = df)
       rss <- sum(residuals(fit)^2, na.rm = TRUE)
       p <- length(coef(fit))
       mse <- mean(residuals(fit)^2, na.rm = TRUE)
-
+      
       data.frame(
         Model = paste(vars, collapse = " + "),
         Predictors = length(vars),
@@ -652,38 +652,38 @@ register_regression_server <- function(input, output, session, state) {
         stringsAsFactors = FALSE
       )
     })
-
+    
     out <- do.call(rbind, out)
     out <- out[order(out$BIC, out$AIC, out$Mallows_Cp), ]
     rownames(out) <- NULL
     out
   })
-
+  
   output$model_candidates <- renderDT({
     tbl <- candidate_model_metrics()
     validate(need(!is.null(tbl), "Candidate model comparison requires at least 2 predictors."))
-
+    
     tbl_display <- tbl
     numeric_cols <- sapply(tbl_display, is.numeric)
     tbl_display[numeric_cols] <- lapply(tbl_display[numeric_cols], round, 4)
-
+    
     DT::datatable(tbl_display, options = list(pageLength = 8, scrollX = TRUE, autoWidth = FALSE), class = "cell-border stripe hover", rownames = FALSE)
   })
-
+  
   output$model_eval_summary <- renderUI({
     tbl <- candidate_model_metrics()
-
+    
     if (is.null(tbl) || nrow(tbl) == 0) {
       return(div(class = "info-card", HTML("Candidate-model evaluation is available when multiple predictors are present.")))
     }
-
+    
     best <- tbl[1, ]
     div(class = "info-card success", HTML(paste0("<strong>Best candidate model summary</strong><br><strong>Model:</strong> ", best$Model, "<br><strong>Adj. R²:</strong> ", round(best$Adj_R2, 4), "<br><strong>MSE:</strong> ", round(best$MSE, 4), "<br><strong>Mallows' Cp:</strong> ", round(best$Mallows_Cp, 4), "<br><strong>AIC:</strong> ", round(best$AIC, 4), "<br><strong>BIC:</strong> ", round(best$BIC, 4))))
   })
-
+  
   output$adequacy_ui <- renderUI({
     built_model <- built_regression()
-
+    
     if (is.null(built_model)) {
       return(
         div(
@@ -693,13 +693,13 @@ register_regression_server <- function(input, output, session, state) {
         )
       )
     }
-
+    
     model <- built_model$model
     normality_test <- safe_normality_test(residuals(model))
     bp_test <- lmtest::bptest(model)
     dw_test <- lmtest::dwtest(model)
     reset_test <- tryCatch(lmtest::resettest(model, power = 2:3, type = "regressor"), error = function(e) NULL)
-
+    
     tagList(
       div(class = "content-card", div(class = "card-header", paste0("✅ Model Adequacy Check - ", built_model$mode)), div(class = "info-card", HTML(paste0("<strong>Built Model:</strong> ", built_model$formula_display, "<br><strong>Assumptions Tested:</strong> Normality, Homoscedasticity, Independence, Linearity")))),
       div(
@@ -717,35 +717,35 @@ register_regression_server <- function(input, output, session, state) {
       div(class = "content-card", div(class = "card-header", "📝 Model Adequacy Summary"), uiOutput("adequacy_summary"))
     )
   })
-
+  
   output$adequacy_corr_table <- renderDT({
     corr_tbl <- adequacy_pairwise_corr()
     validate(need(!is.null(corr_tbl), "Pair-wise correlation requires at least 2 numeric predictors."))
-
+    
     corr_display <- corr_tbl[, c("Predictor_1", "Predictor_2", "Correlation", "Abs_Correlation")]
     numeric_cols <- sapply(corr_display, is.numeric)
     corr_display[numeric_cols] <- lapply(corr_display[numeric_cols], round, 4)
-
+    
     DT::datatable(corr_display, options = list(dom = "t", scrollX = TRUE, autoWidth = FALSE), class = "cell-border stripe hover", rownames = FALSE)
   })
-
+  
   output$adequacy_corr_plot <- renderPlot({
     x_df <- adequacy_predictor_df()
     validate(need(!is.null(x_df), "Need at least 2 numeric predictors for a correlation plot."))
-
+    
     corrplot::corrplot(cor(x_df, use = "complete.obs"), method = "color", type = "upper", addCoef.col = "black", tl.col = "black", tl.srt = 45, number.cex = 0.8)
   })
-
+  
   output$adequacy_multicoll_summary <- renderUI({
     corr_tbl <- adequacy_pairwise_corr()
-
+    
     if (is.null(corr_tbl) || nrow(corr_tbl) == 0) {
       return(div(class = "info-card", HTML("<strong>Pair-wise correlation not available</strong><br>This diagnostic requires at least 2 numeric predictors.")))
     }
-
+    
     max_abs <- max(corr_tbl$Abs_Correlation, na.rm = TRUE)
     flagged <- subset(corr_tbl, Abs_Correlation >= 0.8)
-
+    
     if (max_abs < 0.7) {
       div(class = "info-card success", HTML(paste0("<strong>✅ Low multicollinearity concern</strong><br>Largest absolute pair-wise correlation = <strong>", round(max_abs, 4), "</strong>.")))
     } else if (max_abs < 0.8) {
@@ -757,34 +757,34 @@ register_regression_server <- function(input, output, session, state) {
       div(class = "info-card warning", HTML(paste0("<strong>⚠️ Potential multicollinearity detected</strong><br>Largest absolute pair-wise correlation = <strong>", round(max_abs, 4), "</strong><br><strong>Most correlated pairs:</strong><br>", paste(top_pairs, collapse = "<br>"))))
     }
   })
-
+  
   output$adequacy_resid1 <- renderPlot({
     plot(adequacy_model(), which = 1, col = adjustcolor("#6366f1", alpha.f = 0.6), pch = 19, cex = 1.2, col.main = "#111827", cex.main = 1.3)
   })
-
+  
   output$adequacy_resid2 <- renderPlot({
     plot(adequacy_model(), which = 2, col = adjustcolor("#6366f1", alpha.f = 0.6), pch = 19, cex = 1.2, col.main = "#111827", cex.main = 1.3)
   })
-
+  
   output$adequacy_resid3 <- renderPlot({
     plot(adequacy_model(), which = 3, col = adjustcolor("#6366f1", alpha.f = 0.6), pch = 19, cex = 1.2, col.main = "#111827", cex.main = 1.3)
   })
-
+  
   output$adequacy_resid4 <- renderPlot({
     plot(adequacy_model(), which = 5, col = adjustcolor("#6366f1", alpha.f = 0.6), pch = 19, cex = 1.2, col.main = "#111827", cex.main = 1.3)
   })
-
+  
   output$adequacy_summary <- renderUI({
     model <- adequacy_model()
     normality_test <- safe_normality_test(residuals(model))
     bp_test <- lmtest::bptest(model)
     dw_test <- lmtest::dwtest(model)
-
+    
     normality_ok <- !is.na(normality_test$p.value) && normality_test$p.value > 0.05
     homoscedasticity_ok <- bp_test$p.value > 0.05
     independence_ok <- abs(dw_test$statistic - 2) < 0.5
     all_ok <- normality_ok && homoscedasticity_ok && independence_ok
-
+    
     if (all_ok) {
       div(class = "info-card success", HTML("<strong>✅ Model Assumptions Satisfied</strong><br>All diagnostic tests passed. The built model is adequate for inference and prediction."))
     } else {
@@ -792,15 +792,15 @@ register_regression_server <- function(input, output, session, state) {
       if (!normality_ok) issues <- c(issues, "Normality of residuals")
       if (!homoscedasticity_ok) issues <- c(issues, "Constant variance")
       if (!independence_ok) issues <- c(issues, "Independence of errors")
-
+      
       div(class = "info-card warning", HTML(paste0("<strong>⚠️ Model Assumptions Violated</strong><br>Issues detected: ", paste(issues, collapse = ", "), "<br>Consider: transformations, robust regression, or different model specification.")))
     }
   })
-
+  
   output$boxcox_plot <- renderPlot({
     model <- adequacy_model()
     y_vals <- model.response(model.frame(model))
-
+    
     if (min(y_vals, na.rm = TRUE) <= 0) {
       plot.new()
       text(0.5, 0.5, "Box-Cox requires positive Y values\nShift your data if needed", cex = 1.5, col = "#ef4444")
@@ -810,23 +810,23 @@ register_regression_server <- function(input, output, session, state) {
       grid(col = "gray85", lty = 1)
     }
   })
-
+  
   output$boxcox_info <- renderUI({
     built_model <- built_regression()
-
+    
     if (is.null(built_model)) {
       return(div(class = "info-card", HTML("Build a regression model first on the <strong>Regression</strong> page to use correction methods.")))
     }
-
+    
     model <- adequacy_model()
     y_vals <- model.response(model.frame(model))
-
+    
     if (min(y_vals, na.rm = TRUE) <= 0) {
       div(class = "info-card warning", HTML("⚠ Cannot compute Box-Cox: the built model response contains zero or negative values."))
     } else {
       bc <- boxcox(model, plotit = FALSE, lambda = seq(-2, 2, by = 0.1))
       lambda_opt <- bc$x[which.max(bc$y)]
-
+      
       transform_text <- if (abs(lambda_opt - 1) < 0.1) {
         "No transformation needed (λ ≈ 1)"
       } else if (abs(lambda_opt) < 0.1) {
@@ -838,31 +838,31 @@ register_regression_server <- function(input, output, session, state) {
       } else {
         paste0("Power transformation with λ = ", round(lambda_opt, 3))
       }
-
+      
       div(class = "info-card success", HTML(paste0("✓ Optimal λ = ", round(lambda_opt, 3), "<br><strong>", transform_text, "</strong>")))
     }
   })
-
+  
   output$box_tidwell <- renderUI({
     built_model <- built_regression()
-
+    
     if (is.null(built_model)) {
       return(div(class = "info-card", HTML("Build a regression model first on the <strong>Regression</strong> page to inspect correction methods.")))
     }
-
+    
     model <- adequacy_model()
-
+    
     tryCatch({
       if (length(coef(model)) < 2) {
         return(div(class = "info-card warning", HTML("⚠️ Box-Tidwell test requires at least one predictor variable.")))
       }
-
+      
       model_data <- model.frame(model)
       response_name <- names(model_data)[1]
       predictor_names <- names(model_data)[-1]
       form <- as.formula(paste0("`", response_name, "` ~ ", paste0("`", predictor_names, "`", collapse = " + ")))
       bt_result <- capture.output(car::boxTidwell(form, data = model_data))
-
+      
       predictor_results <- lapply(predictor_names, function(pred) {
         pred_lines <- grep(pred, bt_result, value = TRUE)
         if (length(pred_lines) > 0) {
@@ -875,7 +875,7 @@ register_regression_server <- function(input, output, session, state) {
           )
         }
       })
-
+      
       tagList(
         div(
           class = "visual-stats",
@@ -893,123 +893,164 @@ register_regression_server <- function(input, output, session, state) {
       div(class = "info-card warning", HTML(paste0("<strong>⚠️ Box-Tidwell test could not be performed</strong><br><strong>Possible reasons:</strong><br>• Predictor variables must be strictly positive<br>• Model may not be suitable for this test<br><br><strong>Error:</strong> ", e$message)))
     })
   })
-
+  
   output$wls_summary <- renderUI({
     built_model <- built_regression()
-
+    
     if (is.null(built_model)) {
       return(div(class = "info-card", HTML("Build a regression model first on the <strong>Regression</strong> page to try weighted least squares.")))
     }
-
+    
     m_ols <- adequacy_model()
     weights_inv <- 1 / (fitted(m_ols)^2)
-
+    
     if (any(is.infinite(weights_inv)) || any(is.na(weights_inv))) {
       return(div(class = "info-card warning", HTML("<strong>⚠️ Cannot fit WLS model</strong><br>Fitted values are too close to zero. Try another model or a transformation first.")))
     }
-
+    
     m_wls <- tryCatch(lm(formula(m_ols), data = model.frame(m_ols), weights = weights_inv), error = function(e) NULL)
     if (is.null(m_wls)) {
       return(div(class = "info-card warning", HTML("<strong>⚠️ WLS fitting failed</strong><br>The weighted model could not be fitted for the built regression.")))
     }
-
+    
     bp_ols <- lmtest::bptest(m_ols)
     bp_wls <- lmtest::bptest(m_wls)
-
+    
     div(
       div(class = "visual-stats", div(class = "visual-stat-item", h4("OLS vs WLS Comparison"), div(class = "kv", div(class = "k", "OLS R²"), div(class = "v", round(summary(m_ols)$r.squared, 4)), div(class = "k", "WLS R²"), div(class = "v", round(summary(m_wls)$r.squared, 4)), div(class = "k", "OLS RSE"), div(class = "v", round(summary(m_ols)$sigma, 4)), div(class = "k", "WLS RSE"), div(class = "v", round(summary(m_wls)$sigma, 4)))), div(class = "visual-stat-item", h4("Heteroscedasticity Tests"), div(class = "kv", div(class = "k", "OLS BP p-value"), div(class = "v", fmt_p(bp_ols$p.value)), div(class = "k", "WLS BP p-value"), div(class = "v", fmt_p(bp_wls$p.value)), div(class = "k", "Improvement"), div(class = "v", if (bp_wls$p.value > bp_ols$p.value) "✅ Better" else "⚠️ Worse")))),
       div(class = "info-card", style = "margin-top: 20px;", HTML(paste0("<strong>Interpretation:</strong><br>", if (bp_wls$p.value > 0.05 && bp_ols$p.value < 0.05) "✅ WLS successfully corrected heteroscedasticity" else if (bp_wls$p.value > bp_ols$p.value) "✓ WLS shows improvement in variance homogeneity" else "⚠️ WLS did not improve heteroscedasticity. Consider other transformations.")))
     )
   })
-
+  
+  output$multicollinearity_page_ui <- renderUI({
+    built_model <- built_regression()
+    
+    if (is.null(built_model)) {
+      return(div(class = "content-card",
+                 div(class = "card-header", "🔍 Multicollinearity"),
+                 div(class = "info-card", HTML("Build a <strong>Multiple Regression</strong> model first on the <strong>Regression</strong> page, then return here for VIF, Ridge, and Lasso analysis."))
+      ))
+    }
+    
+    if (!identical(built_model$mode, "Multiple Regression")) {
+      return(div(class = "content-card",
+                 div(class = "card-header", "🔍 Multicollinearity"),
+                 div(class = "info-card warning", HTML("Ridge, Lasso, and cross-validation require a <strong>Multiple Regression</strong> model with at least 2 predictors. Go to the Regression page, switch to Multiple Regression, and build a model."))
+      ))
+    }
+    
+    tagList(
+      div(class = "content-card",
+          div(class = "card-header", "🔍 Variance Inflation Factors (VIF)"),
+          div(class = "info-card warning", HTML("VIF measures how much the variance of an estimated coefficient is inflated due to collinearity.<br><strong>VIF &gt; 5</strong> indicates concern; <strong>VIF &gt; 10</strong> indicates severe multicollinearity.")),
+          withSpinner(uiOutput("multicoll_vif_summary"), color = "#6366f1", type = 4),
+          withSpinner(plotOutput("multicoll_vif_plot", height = "420px"), color = "#6366f1", type = 4)
+      ),
+      div(class = "content-card",
+          div(class = "card-header", "🧮 Ridge Regression"),
+          div(class = "info-card", HTML("Ridge regression shrinks coefficients toward zero to stabilize estimates when predictors are correlated. Selected by 10-fold cross-validation.")),
+          withSpinner(uiOutput("ridge_summary"), color = "#6366f1", type = 4),
+          withSpinner(plotOutput("ridge_cv_plot", height = "420px"), color = "#6366f1", type = 4),
+          div(class = "table-card", DTOutput("ridge_coef"))
+      ),
+      div(class = "content-card",
+          div(class = "card-header", "🎯 Lasso Regression"),
+          div(class = "info-card", HTML("Lasso regression can shrink some coefficients exactly to zero, which helps with variable selection. Selected by 10-fold cross-validation.")),
+          withSpinner(uiOutput("lasso_summary"), color = "#6366f1", type = 4),
+          withSpinner(plotOutput("lasso_cv_plot", height = "420px"), color = "#6366f1", type = 4),
+          div(class = "table-card", DTOutput("lasso_coef"))
+      ),
+      div(class = "content-card",
+          div(class = "card-header", "📉 Comparative Analysis"),
+          div(class = "info-card", HTML("Compare the cross-validated prediction error of OLS, Ridge, and Lasso to identify the best-performing model.")),
+          withSpinner(uiOutput("cv_compare"), color = "#6366f1", type = 4),
+          withSpinner(plotOutput("cv_compare_plot", height = "420px"), color = "#6366f1", type = 4)
+      )
+    )
+  })
+  
   output$ridge_cv_plot <- renderPlot({
+    req(built_regression(), identical(built_regression()$mode, "Multiple Regression"))
     plot(ridge_cv(), main = "Ridge Cross-Validation")
   })
-
+  
   output$lasso_cv_plot <- renderPlot({
+    req(built_regression(), identical(built_regression()$mode, "Multiple Regression"))
     plot(lasso_cv(), main = "Lasso Cross-Validation")
   })
-
+  
   output$ridge_summary <- renderUI({
+    req(built_regression(), identical(built_regression()$mode, "Multiple Regression"))
     cv_fit <- ridge_cv()
     ridge_mse <- min(cv_fit$cvm, na.rm = TRUE)
-
     div(class = "visual-stats", div(class = "visual-stat-item", h4("Ridge CV Results"), div(class = "kv", div(class = "k", "Best λ (lambda.min)"), div(class = "v", round(cv_fit$lambda.min, 6)), div(class = "k", "1-SE λ"), div(class = "v", round(cv_fit$lambda.1se, 6)), div(class = "k", "Min CV MSE"), div(class = "v", round(ridge_mse, 6)), div(class = "k", "Interpretation"), div(class = "v", "Ridge shrinks coefficients but keeps all predictors in the model."))))
   })
-
+  
   output$lasso_summary <- renderUI({
+    req(built_regression(), identical(built_regression()$mode, "Multiple Regression"))
     cv_fit <- lasso_cv()
     coef_min <- coef(cv_fit, s = "lambda.min")
     non_zero <- sum(as.vector(coef_min) != 0) - 1
     lasso_mse <- min(cv_fit$cvm, na.rm = TRUE)
-
     div(class = "visual-stats", div(class = "visual-stat-item", h4("Lasso CV Results"), div(class = "kv", div(class = "k", "Best λ (lambda.min)"), div(class = "v", round(cv_fit$lambda.min, 6)), div(class = "k", "1-SE λ"), div(class = "v", round(cv_fit$lambda.1se, 6)), div(class = "k", "Min CV MSE"), div(class = "v", round(lasso_mse, 6)), div(class = "k", "Selected Predictors"), div(class = "v", non_zero))))
   })
-
+  
   output$ridge_coef <- renderDT({
+    req(built_regression(), identical(built_regression()$mode, "Multiple Regression"))
     coef_mat <- as.matrix(coef(ridge_cv(), s = "lambda.min"))
     coef_df <- data.frame(Term = rownames(coef_mat), Estimate = round(as.numeric(coef_mat[, 1]), 6), stringsAsFactors = FALSE)
     DT::datatable(coef_df, options = list(dom = "t", scrollX = TRUE, autoWidth = FALSE), class = "cell-border stripe hover", rownames = FALSE)
   })
-
+  
   output$lasso_coef <- renderDT({
+    req(built_regression(), identical(built_regression()$mode, "Multiple Regression"))
     coef_mat <- as.matrix(coef(lasso_cv(), s = "lambda.min"))
     coef_df <- data.frame(Term = rownames(coef_mat), Estimate = round(as.numeric(coef_mat[, 1]), 6), stringsAsFactors = FALSE)
     DT::datatable(coef_df, options = list(dom = "t", scrollX = TRUE, autoWidth = FALSE), class = "cell-border stripe hover", rownames = FALSE)
   })
-
+  
   output$cv_compare <- renderUI({
+    req(built_regression(), identical(built_regression()$mode, "Multiple Regression"))
     pd <- penalized_data()
     ols_formula <- as.formula(paste0("`", pd$y_var, "` ~ ", paste0("`", pd$x_vars, "`", collapse = " + ")))
     ols_model <- lm(ols_formula, data = pd$dat)
     ols_mse <- mean(residuals(ols_model)^2, na.rm = TRUE)
     ridge_mse <- min(ridge_cv()$cvm, na.rm = TRUE)
     lasso_mse <- min(lasso_cv()$cvm, na.rm = TRUE)
-
     method_names <- c("OLS", "Ridge", "Lasso")
     mse_vals <- c(ols_mse, ridge_mse, lasso_mse)
     best_method <- method_names[which.min(mse_vals)]
-
-    div(
-      class = "visual-stats",
-      div(
-        class = "visual-stat-item",
-        h4("Model Comparison"),
-        div(
-          class = "kv",
-          div(class = "k", "OLS MSE"), div(class = "v", round(ols_mse, 6)),
-          div(class = "k", "Ridge CV MSE"), div(class = "v", round(ridge_mse, 6)),
-          div(class = "k", "Lasso CV MSE"), div(class = "v", round(lasso_mse, 6)),
-          div(class = "k", "Best Method"), div(class = "v", best_method)
+    div(class = "visual-stats",
+        div(class = "visual-stat-item", h4("Model Comparison"),
+            div(class = "kv",
+                div(class = "k", "OLS MSE"),      div(class = "v", round(ols_mse, 6)),
+                div(class = "k", "Ridge CV MSE"), div(class = "v", round(ridge_mse, 6)),
+                div(class = "k", "Lasso CV MSE"), div(class = "v", round(lasso_mse, 6)),
+                div(class = "k", "Best Method"),  div(class = "v", best_method)
+            )
+        ),
+        div(class = "visual-stat-item", h4("Conclusion"),
+            HTML(paste0("<strong>", best_method, "</strong> has the smallest error in this comparison."))
         )
-      ),
-      div(
-        class = "visual-stat-item",
-        h4("Conclusion"),
-        HTML(paste0("<strong>", best_method, "</strong> has the smallest error in this comparison. Use it as the preferred model for prediction."))
-      )
     )
   })
-
+  
   output$cv_compare_plot <- renderPlot({
+    req(built_regression(), identical(built_regression()$mode, "Multiple Regression"))
     pd <- penalized_data()
     ols_formula <- as.formula(paste0("`", pd$y_var, "` ~ ", paste0("`", pd$x_vars, "`", collapse = " + ")))
     ols_model <- lm(ols_formula, data = pd$dat)
     ols_rmse <- sqrt(mean(residuals(ols_model)^2, na.rm = TRUE))
     ridge_rmse <- sqrt(min(ridge_cv()$cvm, na.rm = TRUE))
     lasso_rmse <- sqrt(min(lasso_cv()$cvm, na.rm = TRUE))
-
     rmses <- c(ols_rmse, ridge_rmse, lasso_rmse)
-    barplot(
-      rmses,
-      names.arg = c("OLS", "Ridge", "LASSO"),
-      col = "#6366f1", border = "white",
-      ylab = "10-fold CV RMSE", main = "Model Comparison",
-      las = 1, cex.names = 1.0, cex.main = 1.4, col.main = "#111827",
-      ylim = c(0, max(rmses) * 1.15)
-    )
+    barplot(rmses, names.arg = c("OLS", "Ridge", "LASSO"),
+            col = "#6366f1", border = "white",
+            ylab = "10-fold CV RMSE", main = "Model Comparison",
+            las = 1, cex.names = 1.0, cex.main = 1.4, col.main = "#111827",
+            ylim = c(0, max(rmses) * 1.15))
   })
-
+  
   multicoll_vif <- reactive({
     built_model <- built_regression()
     validate(need(!is.null(built_model), "Build a regression model first on the Regression page."))
@@ -1017,7 +1058,7 @@ register_regression_server <- function(input, output, session, state) {
     validate(need(length(built_model$x_vars) >= 2, "VIF requires at least 2 predictors."))
     tryCatch(car::vif(built_model$model), error = function(e) NULL)
   })
-
+  
   output$multicoll_vif_summary <- renderUI({
     vif_vals <- multicoll_vif()
     if (is.null(vif_vals)) {
@@ -1033,7 +1074,7 @@ register_regression_server <- function(input, output, session, state) {
     } else {
       "High multicollinearity. Consider Ridge, Lasso, or removing/redefining correlated predictors."
     }
-
+    
     div(
       class = "visual-stats",
       div(
@@ -1050,7 +1091,7 @@ register_regression_server <- function(input, output, session, state) {
       )
     )
   })
-
+  
   output$multicoll_vif_plot <- renderPlot({
     vif_vals <- multicoll_vif()
     validate(need(!is.null(vif_vals), "VIF cannot be calculated (possible perfect collinearity)."))
@@ -1067,7 +1108,7 @@ register_regression_server <- function(input, output, session, state) {
     abline(h = 10, lwd = 2, lty = 3, col = "#ef4444")
     legend("topright", legend = c("VIF = 5 (Concern)", "VIF = 10 (Severe)"), col = c("#f59e0b", "#ef4444"), lty = 3, lwd = 2, bty = "n")
   })
-
+  
   mb_full_model <- reactive({
     built_model <- built_regression()
     validate(need(!is.null(built_model), "Build a regression model first on the Regression page."))
@@ -1075,7 +1116,7 @@ register_regression_server <- function(input, output, session, state) {
     validate(need(length(built_model$x_vars) >= 2, "Model Building requires at least 2 predictors."))
     built_model
   })
-
+  
   output$mb_full_stats <- renderUI({
     bm <- mb_full_model()
     s <- summary(bm$model)
@@ -1099,7 +1140,7 @@ register_regression_server <- function(input, output, session, state) {
       )
     )
   })
-
+  
   output$mb_full_coef <- renderDT({
     bm <- mb_full_model()
     cm <- summary(bm$model)$coefficients
@@ -1114,7 +1155,7 @@ register_regression_server <- function(input, output, session, state) {
     )
     DT::datatable(df, options = list(dom = "t", scrollX = TRUE, autoWidth = FALSE), class = "cell-border stripe hover", rownames = FALSE)
   })
-
+  
   output$mb_full_anova_tbl <- renderDT({
     a <- as.data.frame(anova(mb_full_model()$model))
     a$Term <- rownames(a)
@@ -1124,7 +1165,7 @@ register_regression_server <- function(input, output, session, state) {
     if ("Pr(>F)" %in% names(a)) a[["Pr(>F)"]] <- vapply(a[["Pr(>F)"]], function(p) if (is.na(p)) "" else fmt_p(p), character(1))
     DT::datatable(a, options = list(dom = "t", scrollX = TRUE, autoWidth = FALSE), class = "cell-border stripe hover", rownames = FALSE)
   })
-
+  
   output$mb_corr_plot <- renderPlot({
     bm <- mb_full_model()
     dat <- bm$df[, c(bm$y_var, bm$x_vars), drop = FALSE]
@@ -1141,16 +1182,48 @@ register_regression_server <- function(input, output, session, state) {
       heatmap(cm, symm = TRUE, main = "Correlation Matrix")
     }
   })
-
+  
+  # ── Helper: rebuild model with safe column names for olsrr compatibility ──────
+  safe_model_for_olsrr <- function(bm) {
+    df   <- bm$df
+    y    <- bm$y_var
+    xs   <- bm$x_vars
+    
+    # Only keep needed columns
+    df_use <- df[, c(y, xs), drop = FALSE]
+    df_use <- df_use[complete.cases(df_use), , drop = FALSE]
+    
+    # Rename to safe names
+    safe_nm <- make.names(names(df_use), unique = TRUE)
+    names(df_use) <- safe_nm
+    
+    safe_y <- safe_nm[1]
+    safe_x <- safe_nm[-1]
+    
+    fml <- as.formula(paste0(safe_y, " ~ ", paste(safe_x, collapse = " + ")))
+    lm(fml, data = df_use)
+  }
+  
   mb_all_subsets <- reactive({
     bm <- mb_full_model()
     validate(need(requireNamespace("olsrr", quietly = TRUE), "Package 'olsrr' is required for best subset selection."))
-    res <- tryCatch(olsrr::ols_step_all_possible(bm$model), error = function(e) NULL)
-    validate(need(!is.null(res), "Best subset selection failed for this model."))
-    df <- if (is.data.frame(res)) res else res$result
+    
+    safe_mod <- tryCatch(safe_model_for_olsrr(bm), error = function(e) NULL)
+    validate(need(!is.null(safe_mod), "Could not prepare model for subset selection."))
+    
+    # Try both old and new olsrr API
+    res <- tryCatch(olsrr::ols_step_all_possible(safe_mod), error = function(e) e)
+    
+    if (inherits(res, "error")) {
+      # Show the real error message to help diagnose
+      validate(need(FALSE, paste("Best subset selection error:", conditionMessage(res))))
+    }
+    
+    df <- if (is.data.frame(res)) res else if (!is.null(res$result)) res$result else NULL
+    validate(need(!is.null(df), "Best subset selection returned no results."))
     df
   })
-
+  
   output$mb_all_subsets <- renderDT({
     df <- mb_all_subsets()
     keep <- intersect(c("n", "predictors", "rsquare", "adjr", "predrsq", "cp", "aic", "sbc", "msep"), names(df))
@@ -1164,7 +1237,7 @@ register_regression_server <- function(input, output, session, state) {
       rownames = FALSE
     )
   })
-
+  
   output$mb_best_summary <- renderUI({
     df <- mb_all_subsets()
     pick <- function(col, fn) {
@@ -1184,7 +1257,7 @@ register_regression_server <- function(input, output, session, state) {
       idx <- which.min(abs(cpp))
       if (length(idx) > 0) best_cp <- as.character(df$predictors[idx])
     }
-
+    
     div(
       class = "visual-stats",
       div(
@@ -1202,7 +1275,7 @@ register_regression_server <- function(input, output, session, state) {
       )
     )
   })
-
+  
   output$mb_cp_plot <- renderPlot({
     df <- mb_all_subsets()
     validate(need(all(c("cp", "n") %in% names(df)), "Cp values not available."))
@@ -1216,15 +1289,19 @@ register_regression_server <- function(input, output, session, state) {
     )
     abline(a = 0, b = 1, col = "#ef4444", lwd = 2)
   })
-
+  
   mb_stepwise_ui <- function(fn, ...) {
     bm <- mb_full_model()
     validate(need(requireNamespace("olsrr", quietly = TRUE), "Package 'olsrr' is required for stepwise selection."))
-    res <- tryCatch(fn(bm$model, ...), error = function(e) e)
+    safe_mod <- tryCatch(safe_model_for_olsrr(bm), error = function(e) NULL)
+    if (is.null(safe_mod)) {
+      return(div(class = "info-card warning", HTML("<strong>Could not prepare model for stepwise selection.</strong>")))
+    }
+    res <- tryCatch(fn(safe_mod, ...), error = function(e) e)
     if (inherits(res, "error")) {
       return(div(class = "info-card warning", HTML(paste0("<strong>Procedure failed:</strong> ", conditionMessage(res)))))
     }
-
+    
     extract <- function(obj) {
       candidates <- c("predictors", "indvar", "model$variable")
       for (slot in c("predictors", "indvar")) {
@@ -1236,7 +1313,7 @@ register_regression_server <- function(input, output, session, state) {
       character(0)
     }
     selected <- extract(res)
-
+    
     step_df <- NULL
     if (!is.null(res$steps) || !is.null(res$step)) {
       candidates <- list(res$steps, res$step, res$metrics)
@@ -1245,9 +1322,9 @@ register_regression_server <- function(input, output, session, state) {
       }
     }
     if (is.null(step_df) && !is.null(res$metrics) && is.data.frame(res$metrics)) step_df <- res$metrics
-
+    
     final_formula <- if (length(selected) > 0) paste0("`", bm$y_var, "` ~ ", paste0("`", selected, "`", collapse = " + ")) else NA
-
+    
     div(
       div(
         class = "visual-stats",
@@ -1273,19 +1350,19 @@ register_regression_server <- function(input, output, session, state) {
       }
     )
   }
-
+  
   output$mb_forward_ui <- renderUI({
     mb_stepwise_ui(olsrr::ols_step_forward_p, penter = 0.10, details = FALSE)
   })
-
+  
   output$mb_backward_ui <- renderUI({
     mb_stepwise_ui(olsrr::ols_step_backward_p, prem = 0.15, details = FALSE)
   })
-
+  
   output$mb_stepwise_ui <- renderUI({
     mb_stepwise_ui(olsrr::ols_step_both_p, pent = 0.10, prem = 0.15, details = FALSE)
   })
-
+  
   mb_final_predictors <- reactive({
     df <- mb_all_subsets()
     validate(need(all(c("cp", "n", "predictors") %in% names(df)), "Cannot derive final model."))
@@ -1294,15 +1371,22 @@ register_regression_server <- function(input, output, session, state) {
     preds <- as.character(df$predictors[idx])
     strsplit(preds, "\\s+")[[1]]
   })
-
+  
   mb_final_model <- reactive({
-    bm <- mb_full_model()
+    bm    <- mb_full_model()
     preds <- mb_final_predictors()
     validate(need(length(preds) >= 1, "No predictors selected."))
-    formula_str <- paste0("`", bm$y_var, "` ~ ", paste0("`", preds, "`", collapse = " + "))
-    lm(as.formula(formula_str), data = bm$df)
+    # Use safe_model_for_olsrr data so column names match the predictor names from olsrr
+    safe_mod <- safe_model_for_olsrr(bm)
+    df_safe  <- model.frame(safe_mod)
+    y_nm     <- names(df_safe)[1]
+    # preds are already safe names from olsrr output
+    valid_preds <- preds[preds %in% names(df_safe)]
+    validate(need(length(valid_preds) >= 1, "Selected predictors not found in data."))
+    fml <- as.formula(paste0(y_nm, " ~ ", paste(valid_preds, collapse = " + ")))
+    lm(fml, data = df_safe)
   })
-
+  
   output$mb_final_stats <- renderUI({
     m <- mb_final_model()
     s <- summary(m)
@@ -1327,7 +1411,7 @@ register_regression_server <- function(input, output, session, state) {
       )
     )
   })
-
+  
   output$mb_final_coef <- renderDT({
     m <- mb_final_model()
     cm <- summary(m)$coefficients
@@ -1342,7 +1426,7 @@ register_regression_server <- function(input, output, session, state) {
     )
     DT::datatable(df, options = list(dom = "t", scrollX = TRUE, autoWidth = FALSE), class = "cell-border stripe hover", rownames = FALSE)
   })
-
+  
   output$mb_final_vif_tbl <- renderDT({
     m <- mb_final_model()
     if (length(coef(m)) - 1 < 2) {

@@ -855,6 +855,65 @@ body {
   cursor: pointer;
 }
 
+.sample-dataset-card {
+  display: grid;
+  gap: 12px;
+  margin: 0 0 14px;
+  padding: 14px 14px 12px;
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at top right, rgba(99, 102, 241, 0.08), transparent 36%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.96) 0%, rgba(243, 244, 255, 0.96) 100%);
+  border: 1px solid rgba(99, 102, 241, 0.12);
+  box-shadow: 0 12px 28px rgba(99, 102, 241, 0.06);
+}
+
+.sample-dataset-header {
+  display: grid;
+  gap: 6px;
+}
+
+.sample-dataset-header-copy {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.sample-dataset-card .form-group {
+  margin-bottom: 0;
+}
+
+.sample-dataset-card label,
+.sample-dataset-card .control-label {
+  display: none !important;
+}
+
+.sample-dataset-actions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  align-items: end;
+}
+
+.sample-dataset-card .form-control,
+.sample-dataset-card .selectize-input {
+  min-height: 44px;
+  border-radius: 12px;
+}
+
+.sample-dataset-actions > .form-group,
+.sample-dataset-actions > .shiny-input-container {
+  margin-bottom: 0;
+  min-width: 0;
+}
+
+.sample-dataset-button {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 18px;
+  margin-bottom: 0;
+}
+
 .dataset-page {
   display: grid;
   gap: 20px;

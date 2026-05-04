@@ -178,7 +178,11 @@ build_home_panel <- function() {
           build_home_catalog_item("Model Adequacy", "Evaluates regression assumptions such as normality, homoscedasticity, independence, and linearity."),
           build_home_catalog_item("Correct Inadequacies", "Provides correction methods such as Box-Cox transformations, Box-Tidwell testing, and Weighted Least Squares."),
           build_home_catalog_item("Multicollinearity", "Detects multicollinearity using VIF and applies Ridge or Lasso regression with cross-validated comparison against OLS."),
-          build_home_catalog_item("Model Building", "Performs feature selection with best subset, forward, backward, and stepwise procedures across MSE, Adjusted R², Cp, AIC, and BIC.")
+          build_home_catalog_item("Model Building", "Performs feature selection with best subset, forward, backward, and stepwise procedures across MSE, Adjusted R², Cp, AIC, and BIC."),
+          build_home_catalog_item("Influence Diagnostics", "Detects leverage points and influential observations using Cook's D, DFFITS, and DFBETAs. Compares OLS, cleaned OLS, Huber, and Bisquare robust models."),
+          build_home_catalog_item("Polynomial Regression", "Fit linear, quadratic, and cubic polynomial models with and without centering. Compares VIF across models to illustrate multicollinearity reduction."),
+          build_home_catalog_item("Spline Regression", "Fit piecewise linear, quadratic, and cubic B-spline models. Users set knot locations interactively and compare fits with residual plots."),
+          build_home_catalog_item("GLM: Logit / Probit / Poisson", "Fit logistic regression (logit and probit links) for binary outcomes, and Poisson regression for count data. Includes coefficient tables, LR tests, and prediction.")
         )
       )
     )
@@ -303,48 +307,7 @@ build_ui <- function() {
             tabPanel(
               "Multicollinearity",
               value = "tab_multicollinearity",
-              div(
-                class = "content-card",
-                div(class = "card-header", "🔍 Variance Inflation Factors (VIF)"),
-                div(
-                  class = "info-card warning",
-                  HTML("VIF measures how much the variance of an estimated coefficient is inflated due to collinearity.<br><strong>VIF &gt; 5</strong> indicates concern; <strong>VIF &gt; 10</strong> indicates severe multicollinearity.")
-                ),
-                withSpinner(uiOutput("multicoll_vif_summary"), color = "#6366f1", type = 4),
-                withSpinner(plotOutput("multicoll_vif_plot", height = "420px"), color = "#6366f1", type = 4)
-              ),
-              div(
-                class = "content-card",
-                div(class = "card-header", "🧮 Ridge Regression"),
-                div(
-                  class = "info-card",
-                  HTML("Ridge regression shrinks coefficients toward zero to stabilize estimates when predictors are correlated. Selected by 10-fold cross-validation.")
-                ),
-                withSpinner(uiOutput("ridge_summary"), color = "#6366f1", type = 4),
-                withSpinner(plotOutput("ridge_cv_plot", height = "420px"), color = "#6366f1", type = 4),
-                div(class = "table-card", DTOutput("ridge_coef"))
-              ),
-              div(
-                class = "content-card",
-                div(class = "card-header", "🎯 Lasso Regression"),
-                div(
-                  class = "info-card",
-                  HTML("Lasso regression can shrink some coefficients exactly to zero, which helps with variable selection. Selected by 10-fold cross-validation.")
-                ),
-                withSpinner(uiOutput("lasso_summary"), color = "#6366f1", type = 4),
-                withSpinner(plotOutput("lasso_cv_plot", height = "420px"), color = "#6366f1", type = 4),
-                div(class = "table-card", DTOutput("lasso_coef"))
-              ),
-              div(
-                class = "content-card",
-                div(class = "card-header", "📉 Comparative Analysis"),
-                div(
-                  class = "info-card",
-                  HTML("Compare the cross-validated prediction error of OLS, Ridge, and Lasso to identify the best-performing model.")
-                ),
-                withSpinner(uiOutput("cv_compare"), color = "#6366f1", type = 4),
-                withSpinner(plotOutput("cv_compare_plot", height = "420px"), color = "#6366f1", type = 4)
-              )
+              uiOutput("multicollinearity_page_ui")
             ),
 
             tabPanel(
@@ -419,6 +382,22 @@ build_ui <- function() {
                 div(class = "table-card", h4("Final Model Coefficients"), DTOutput("mb_final_coef")),
                 div(class = "table-card", h4("Final Model VIF"), DTOutput("mb_final_vif_tbl"))
               )
+            ),
+
+            tabPanel("Influence Diagnostics", value = "tab_influence",
+              uiOutput("influence_ui")
+            ),
+
+            tabPanel("Polynomial Regression", value = "tab_polynomial",
+              uiOutput("polynomial_ui")
+            ),
+
+            tabPanel("Spline Regression", value = "tab_spline",
+              uiOutput("spline_ui")
+            ),
+
+            tabPanel("GLM (Logit/Probit/Poisson)", value = "tab_glm",
+              uiOutput("glm_ui")
             )
           )
         )
