@@ -1,9 +1,0 @@
-source("R/helpers.R")
-source("R/styles.R")
-source("R/ui.R")
-source("R/server_state.R")
-source("R/server_analysis.R")
-source("R/server_regression.R")
-source("R/server.R")
-
-shinyApp(ui = build_ui(), server = app_server)
