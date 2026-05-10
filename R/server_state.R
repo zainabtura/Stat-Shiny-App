@@ -157,12 +157,19 @@ register_core_server <- function(input, output, session, state) {
   lapply(names(navigation_map), function(id) {
     observeEvent(input[[id]], {
       state$current_tab(navigation_map[[id]])
+      shinyjs::runjs("document.getElementById('app-shell').classList.remove('sidebar-open');")
     }, ignoreInit = TRUE)
   })
 
   observeEvent(input$toggle_sidebar, {
     shinyjs::runjs(
-      "document.getElementById('app-shell').classList.toggle('sidebar-collapsed');
+      "var shell = document.getElementById('app-shell');
+       var isMobile = window.innerWidth <= 1100;
+       if (isMobile) {
+         shell.classList.toggle('sidebar-open');
+       } else {
+         shell.classList.toggle('sidebar-collapsed');
+       }
        setTimeout(function() {
          if (window.jQuery && $.fn.dataTable) {
            $.fn.dataTable.tables({visible: true, api: true}).columns.adjust().draw(false);
@@ -192,12 +199,13 @@ register_core_server <- function(input, output, session, state) {
 
     enable_targets(c("nav_home"), TRUE)
     enable_targets(c("nav_upload", "home_study_upload"), TRUE)
-    enable_targets(c("nav_descriptive", "home_nav_descriptive"), has_data)
-    enable_targets(c("nav_tests", "card_tests", "home_nav_tests"), length(nums) >= 1)
-    enable_targets(c("nav_regression", "nav_indicator", "home_nav_regression"), length(nums) >= 2)
-    enable_targets(c("nav_adequacy", "card_adequacy", "nav_corrections", "card_corrections", "nav_multicollinearity", "card_multicollinearity", "nav_model_building", "card_model_building", "nav_influence", "card_influence", "home_nav_adequacy", "home_nav_corrections", "home_nav_multicollinearity", "home_nav_model_building", "home_nav_influence"), has_built_regression)
-    enable_targets(c("nav_polynomial", "nav_spline", "home_nav_polynomial", "home_nav_spline"), length(nums) >= 2)
-    enable_targets(c("nav_glm", "home_nav_glm"), has_data)
+    enable_targets(c("home_nav_descriptive", "home_nav_tests", "home_nav_regression", "home_nav_adequacy", "home_nav_corrections", "home_nav_multicollinearity", "home_nav_model_building", "home_nav_influence", "home_nav_polynomial", "home_nav_spline", "home_nav_glm"), TRUE)
+    enable_targets(c("nav_descriptive"), has_data)
+    enable_targets(c("nav_tests", "card_tests"), length(nums) >= 1)
+    enable_targets(c("nav_regression", "nav_indicator"), length(nums) >= 2)
+    enable_targets(c("nav_adequacy", "card_adequacy", "nav_corrections", "card_corrections", "nav_multicollinearity", "card_multicollinearity", "nav_model_building", "card_model_building", "nav_influence", "card_influence"), has_built_regression)
+    enable_targets(c("nav_polynomial", "nav_spline"), length(nums) >= 2)
+    enable_targets(c("nav_glm"), has_data)
   })
 
   observeEvent(input$reset_selections, {
