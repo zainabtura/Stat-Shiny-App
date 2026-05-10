@@ -2899,16 +2899,48 @@ input[type='file'] {
 
   .study-sidebar,
   .app-shell.sidebar-collapsed .study-sidebar {
-    position: static;
+    position: sticky;
+    top: 0;
+    z-index: 900;
     height: auto;
     width: 100%;
     flex-basis: auto;
   }
 
+  .sidebar-nav,
+  .utility-section {
+    display: none !important;
+  }
+
+  .app-shell.sidebar-open .sidebar-nav,
+  .app-shell.sidebar-open .utility-section {
+    display: flex !important;
+  }
+
+  .app-shell.sidebar-open .sidebar-nav {
+    flex-direction: column;
+    width: 100%;
+    gap: 4px;
+  }
+
+  .app-shell.sidebar-open .nav-group {
+    flex-direction: column;
+  }
+
+  .app-shell.sidebar-open .nav-button.btn {
+    justify-content: flex-start;
+    padding: 10px 14px;
+  }
+
   .app-shell.sidebar-collapsed .nav-group-title,
   .app-shell.sidebar-collapsed .nav-label,
   .app-shell.sidebar-collapsed .utility-section {
-    display: initial;
+    display: none;
+  }
+
+  .app-shell.sidebar-open .nav-group-title,
+  .app-shell.sidebar-open .nav-label {
+    display: block !important;
   }
 
   .app-shell.sidebar-collapsed .nav-button.btn {
@@ -2957,28 +2989,17 @@ input[type='file'] {
   }
 
   .preview-bar {
-    flex-direction: column;
-    gap: 18px;
-    padding: 20px 24px;
-  }
-
-  .preview-divider {
-    width: 100%;
-    height: 1px;
-    margin: 0;
-  }
-
-  .preview-stat {
-    justify-content: flex-start;
-    width: 100%;
+    gap: 16px;
+    padding: 18px 20px;
+    flex-wrap: wrap;
   }
 
   .bento {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
   }
 
   .more-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
   }
 
   .dataset-page-header {
@@ -3063,6 +3084,50 @@ input[type='file'] {
 
   .descriptive-content-shell {
     padding: 24px 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .bento {
+    grid-template-columns: 1fr;
+  }
+
+  .more-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .preview-bar {
+    flex-direction: column;
+    gap: 18px;
+    padding: 20px 16px;
+  }
+
+  .preview-divider {
+    width: 100%;
+    height: 1px;
+    margin: 0;
+  }
+
+  .preview-stat {
+    justify-content: flex-start;
+    width: 100%;
+  }
+
+  .hero-title {
+    font-size: 24px;
+  }
+
+  .hero-subtitle {
+    font-size: 14px;
+  }
+
+  .hero-section {
+    padding: 24px 16px 20px;
+    border-radius: 18px;
+  }
+
+  .bento-heading {
+    font-size: 16px;
   }
 }
 "

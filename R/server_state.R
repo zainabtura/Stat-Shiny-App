@@ -157,12 +157,19 @@ register_core_server <- function(input, output, session, state) {
   lapply(names(navigation_map), function(id) {
     observeEvent(input[[id]], {
       state$current_tab(navigation_map[[id]])
+      shinyjs::runjs("document.getElementById('app-shell').classList.remove('sidebar-open');")
     }, ignoreInit = TRUE)
   })
 
   observeEvent(input$toggle_sidebar, {
     shinyjs::runjs(
-      "document.getElementById('app-shell').classList.toggle('sidebar-collapsed');
+      "var shell = document.getElementById('app-shell');
+       var isMobile = window.innerWidth <= 1100;
+       if (isMobile) {
+         shell.classList.toggle('sidebar-open');
+       } else {
+         shell.classList.toggle('sidebar-collapsed');
+       }
        setTimeout(function() {
          if (window.jQuery && $.fn.dataTable) {
            $.fn.dataTable.tables({visible: true, api: true}).columns.adjust().draw(false);
