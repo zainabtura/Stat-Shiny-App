@@ -70,119 +70,160 @@ build_home_panel <- function() {
     class = "home-panel",
     div(
       class = "home-shell",
+
       div(
-        class = "home-hero-panel",
+        class = "hero-section",
+        div(class = "hero-bg-shape hero-bg-1"),
+        div(class = "hero-bg-shape hero-bg-2"),
         div(
-          class = "home-hero-main",
-          div(class = "home-kicker", "Universal Data Analyzer"),
-          h2("A clearer, faster way to move from raw data to statistical insight."),
-          p("Upload your dataset, scan its structure, explore variables, run inferential procedures, fit regression models, and verify model assumptions from one workspace."),
+          class = "hero-inner",
+          div(class = "hero-badge-row",
+            div(class = "hero-badge", icon("chart-simple"), span("Statistical Analysis Platform"))
+          ),
+          h1(class = "hero-title",
+            "Analyze Your Data",
+            br(),
+            span(class = "hero-accent", "With Confidence")
+          ),
+          p(class = "hero-subtitle",
+            "Upload datasets, run descriptive and inferential analyses, build regression models, and validate assumptions — all from a single workspace."
+          ),
           div(
-            class = "home-hero-actions",
+            class = "hero-cta-row",
             actionButton(
               "home_study_upload",
-              label = tagList(icon("upload"), "Upload Dataset"),
-              class = "home-hero-button home-hero-button-primary"
+              label = tagList(icon("arrow-up-from-bracket"), "Upload Dataset"),
+              class = "hero-cta-primary"
             ),
-            tags$button(
-              id = "home_start_exploring",
-              type = "button",
-              class = "btn home-hero-button home-hero-button-secondary home-static-button",
-              "Start Exploring"
-            )
-          ),
-          div(
-            class = "home-hero-note",
-            "Upload a CSV or Excel file first, then move into the study that matches your question."
+            div(class = "hero-cta-hint", icon("circle-info"), span("Supports CSV and Excel files"))
           )
         )
       ),
+
       div(
-        class = "home-flow-band",
-        div(class = "home-status-label", "How To Use"),
-        div(
-          class = "home-flow-track",
-          build_home_flow_step("1", "upload", "Upload", "Securely ingest structured or unstructured datasets and get your workspace ready."),
-          build_home_flow_step("2", "table-columns", "Review", "Scan summaries, preview the data, and understand structure and quality."),
-          build_home_flow_step("3", "chart-line", "Run", "Apply descriptive, inferential, and regression workflows to answer your questions."),
-          build_home_flow_step("4", "shield-halved", "Check", "Evaluate assumptions, inspect diagnostics, and correct model issues.")
-        )
-      ),
-      div(
-        class = "home-section home-study-section",
-        div(
-          class = "home-section-head",
-          div(
-            class = "home-section-heading-block",
-            div(class = "home-section-title", "Core Studies"),
-            div(class = "home-section-caption", "Choose the main direction of analysis and move into focused outputs immediately.")
+        class = "preview-bar",
+        div(class = "preview-stat",
+          div(class = "preview-stat-icon", icon("table-columns")),
+          div(class = "preview-stat-text",
+            div(class = "preview-stat-num", "17"),
+            div(class = "preview-stat-label", "Analysis Modules")
           )
         ),
-        div(
-          class = "home-study-grid",
-          build_home_study_card(
-            "home_study_descriptive",
-            "Explore",
-            "chart-column",
-            "Summarize the dataset, inspect variable structure, and explore numeric or categorical patterns.",
-            subtitle = "Descriptive Analysis"
-          ),
-          build_home_study_card(
-            "home_study_tests",
-            "Test",
-            "flask",
-            "Run one-sample, two-sample, and distribution-based procedures on numeric variables.",
-            subtitle = "Inferential Statistics"
-          ),
-          build_home_study_card(
-            "home_study_regression",
-            "Model",
-            "chart-line",
-            "Fit simple or multiple linear regression models and inspect diagnostics and model quality.",
-            subtitle = "Regression"
-          ),
-          build_home_study_card(
-            "home_study_adequacy",
-            "Validate",
-            "shield-halved",
-            "Evaluate assumptions like normality, homoscedasticity, independence, and linearity.",
-            subtitle = "Model Adequacy"
+        div(class = "preview-divider"),
+        div(class = "preview-stat",
+          div(class = "preview-stat-icon", icon("chart-line")),
+          div(class = "preview-stat-text",
+            div(class = "preview-stat-num", "4"),
+            div(class = "preview-stat-label", "Core Workflows")
+          )
+        ),
+        div(class = "preview-divider"),
+        div(class = "preview-stat",
+          div(class = "preview-stat-icon", icon("arrows-rotate")),
+          div(class = "preview-stat-text",
+            div(class = "preview-stat-num", "End-to-End"),
+            div(class = "preview-stat-label", "Upload to Validation")
           )
         )
       ),
+
       div(
-        class = "home-section home-catalog-section",
-        div(
-          class = "home-section-head",
-          div(
-            class = "home-section-heading-block",
-            div(class = "home-section-title", "Other Details"),
-            div(class = "home-section-caption", "The extended analysis catalog that supports the complete workflow.")
+        class = "bento",
+        actionButton(
+          "home_nav_descriptive",
+          label = tagList(
+            div(class = "bento-visual",
+              div(class = "bento-mini-bar", style = "height:60%"),
+              div(class = "bento-mini-bar", style = "height:85%"),
+              div(class = "bento-mini-bar", style = "height:45%"),
+              div(class = "bento-mini-bar", style = "height:70%"),
+              div(class = "bento-mini-bar", style = "height:90%")
+            ),
+            div(class = "bento-tag", "Descriptive"),
+            div(class = "bento-heading", "Explore Your Data"),
+            div(class = "bento-copy", "Summaries, distributions, histograms, boxplots, and correlation analysis across all variable types.")
           ),
-          div(
-            class = "home-catalog-intro",
-            "Use this as a quick map of the full analysis workflow."
-          )
+          class = "bento-card bento-featured"
+        ),
+        actionButton(
+          "home_nav_tests",
+          label = tagList(
+            div(class = "bento-icon-block bento-icon-blue", icon("flask-vial")),
+            div(class = "bento-tag", "Inferential"),
+            div(class = "bento-heading", "Test Hypotheses"),
+            div(class = "bento-copy", "t-tests, Wilcoxon, normality checks, and two-group comparisons.")
+          ),
+          class = "bento-card"
+        ),
+        actionButton(
+          "home_nav_regression",
+          label = tagList(
+            div(class = "bento-icon-block bento-icon-indigo", icon("chart-line")),
+            div(class = "bento-tag", "Regression"),
+            div(class = "bento-heading", "Build Models"),
+            div(class = "bento-copy", "Simple and multiple linear regression with full diagnostics.")
+          ),
+          class = "bento-card"
+        ),
+        actionButton(
+          "home_nav_adequacy",
+          label = tagList(
+            div(class = "bento-visual bento-visual-check",
+              div(class = "bento-check-row", icon("circle-check"), span("Normality")),
+              div(class = "bento-check-row", icon("circle-check"), span("Homoscedasticity")),
+              div(class = "bento-check-row", icon("circle-xmark"), span("Independence"))
+            ),
+            div(class = "bento-tag", "Adequacy"),
+            div(class = "bento-heading", "Validate Assumptions"),
+            div(class = "bento-copy", "Check every regression assumption and identify violations.")
+          ),
+          class = "bento-card bento-featured"
+        )
+      ),
+
+      div(
+        class = "more-section",
+        div(class = "more-header",
+          h3("More Analysis Tools"),
+          p("Advanced modules that extend the core workflow.")
         ),
         div(
-          class = "home-catalog-grid",
-          build_home_catalog_item("Summary", "Provides a quick overview of the dataset including number of rows, columns, missing values, variable types, and strongest correlations."),
-          build_home_catalog_item("Data Preview", "Displays the uploaded dataset and basic information about its structure and data quality."),
-          build_home_catalog_item("Single Numeric", "Analyzes one numeric variable using descriptive statistics, histograms, and boxplots."),
-          build_home_catalog_item("Two Numeric", "Examines relationships between two numeric variables using correlation analysis and scatter plots."),
-          build_home_catalog_item("Multi Numeric", "Explores relationships among multiple numeric variables using correlation matrices and scatterplot matrices."),
-          build_home_catalog_item("Single Categorical", "Analyzes one categorical variable using frequency tables, bar charts, and pie charts."),
-          build_home_catalog_item("Two Categorical", "Compares two categorical variables using contingency tables and graphical comparisons."),
-          build_home_catalog_item("Tests", "Performs statistical hypothesis tests including normality tests, one-sample t-tests, Wilcoxon tests, and two-group comparisons."),
-          build_home_catalog_item("Regression", "Fits simple or multiple linear regression models depending on the selected predictors and displays model summaries and diagnostics."),
-          build_home_catalog_item("Model Adequacy", "Evaluates regression assumptions such as normality, homoscedasticity, independence, and linearity."),
-          build_home_catalog_item("Correct Inadequacies", "Provides correction methods such as Box-Cox transformations, Box-Tidwell testing, and Weighted Least Squares."),
-          build_home_catalog_item("Multicollinearity", "Detects multicollinearity using VIF and applies Ridge or Lasso regression with cross-validated comparison against OLS."),
-          build_home_catalog_item("Model Building", "Performs feature selection with best subset, forward, backward, and stepwise procedures across MSE, Adjusted R², Cp, AIC, and BIC."),
-          build_home_catalog_item("Influence Diagnostics", "Detects leverage points and influential observations using Cook's D, DFFITS, and DFBETAs. Compares OLS, cleaned OLS, Huber, and Bisquare robust models."),
-          build_home_catalog_item("Polynomial Regression", "Fit linear, quadratic, and cubic polynomial models with and without centering. Compares VIF across models to illustrate multicollinearity reduction."),
-          build_home_catalog_item("Spline Regression", "Fit piecewise linear, quadratic, and cubic B-spline models. Users set knot locations interactively and compare fits with residual plots."),
-          build_home_catalog_item("GLM: Logit / Probit / Poisson", "Fit logistic regression (logit and probit links) for binary outcomes, and Poisson regression for count data. Includes coefficient tables, LR tests, and prediction.")
+          class = "more-grid",
+
+          actionButton("home_nav_corrections", label = tagList(
+            div(class = "more-icon more-icon-amber", icon("wrench")),
+            div(class = "more-body", div(class = "more-title", "Correct Inadequacies"), div(class = "more-desc", "Box-Cox, Box-Tidwell, WLS"))
+          ), class = "more-card"),
+
+          actionButton("home_nav_multicollinearity", label = tagList(
+            div(class = "more-icon more-icon-rose", icon("diagram-project")),
+            div(class = "more-body", div(class = "more-title", "Multicollinearity"), div(class = "more-desc", "VIF, Ridge, Lasso"))
+          ), class = "more-card"),
+
+          actionButton("home_nav_model_building", label = tagList(
+            div(class = "more-icon more-icon-teal", icon("cubes")),
+            div(class = "more-body", div(class = "more-title", "Model Building"), div(class = "more-desc", "Best subset, stepwise selection"))
+          ), class = "more-card"),
+
+          actionButton("home_nav_influence", label = tagList(
+            div(class = "more-icon more-icon-orange", icon("magnifying-glass-chart")),
+            div(class = "more-body", div(class = "more-title", "Influence Diagnostics"), div(class = "more-desc", "Cook's D, DFFITS, DFBETAs"))
+          ), class = "more-card"),
+
+          actionButton("home_nav_polynomial", label = tagList(
+            div(class = "more-icon more-icon-cyan", icon("wave-square")),
+            div(class = "more-body", div(class = "more-title", "Polynomial Regression"), div(class = "more-desc", "Quadratic, cubic, centering"))
+          ), class = "more-card"),
+
+          actionButton("home_nav_spline", label = tagList(
+            div(class = "more-icon more-icon-emerald", icon("bezier-curve")),
+            div(class = "more-body", div(class = "more-title", "Spline Regression"), div(class = "more-desc", "B-splines with interactive knots"))
+          ), class = "more-card"),
+
+          actionButton("home_nav_glm", label = tagList(
+            div(class = "more-icon more-icon-violet", icon("square-binary")),
+            div(class = "more-body", div(class = "more-title", "GLM"), div(class = "more-desc", "Logistic, probit, Poisson"))
+          ), class = "more-card")
         )
       )
     )
