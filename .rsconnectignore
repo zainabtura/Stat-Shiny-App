@@ -1,0 +1,9 @@
+.claude/
+.codex_backup_*/
+.DS_Store
+.git/
+.gitignore
+rsconnect/
+poster.pptx
+CLAUDE.md
+README.md

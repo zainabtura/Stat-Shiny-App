@@ -1,3 +1,4 @@
 .claude/
 .codex_backup_*/
 .DS_Store
+rsconnect/
