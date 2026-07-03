@@ -316,34 +316,7 @@ build_ui <- function() {
             tabPanel("Indicator Variables", value = "tab_indicator", uiOutput("indicator_ui")),
             tabPanel("Model Adequacy", value = "tab_adequacy", uiOutput("adequacy_ui")),
 
-            tabPanel(
-              "Correct Inadequacies",
-              value = "tab_corrections",
-              div(
-                class = "content-card",
-                div(class = "card-header", "📦 Box-Cox Transformation"),
-                uiOutput("boxcox_info"),
-                withSpinner(plotOutput("boxcox_plot", height = "500px"), color = "#6366f1", type = 4)
-              ),
-              div(
-                class = "content-card",
-                div(class = "card-header", "📈 Box-Tidwell Test for Linearity"),
-                div(
-                  class = "info-card",
-                  HTML("Tests whether predictors need power transformations. Non-significant p-values suggest linear relationships are appropriate.")
-                ),
-                withSpinner(uiOutput("box_tidwell"), color = "#6366f1", type = 4)
-              ),
-              div(
-                class = "content-card",
-                div(class = "card-header", "⚖️ Weighted Least Squares (WLS)"),
-                div(
-                  class = "info-card",
-                  HTML("WLS corrects heteroscedasticity by giving less weight to observations with higher variance.")
-                ),
-                withSpinner(uiOutput("wls_summary"), color = "#6366f1", type = 4)
-              )
-            ),
+            tabPanel("Correct Inadequacies", value = "tab_corrections", uiOutput("corrections_ui")),
 
             tabPanel(
               "Multicollinearity",
@@ -351,79 +324,7 @@ build_ui <- function() {
               uiOutput("multicollinearity_page_ui")
             ),
 
-            tabPanel(
-              "Model Building",
-              value = "tab_model_building",
-              div(
-                class = "content-card",
-                div(class = "card-header", "📋 Full Model Summary"),
-                div(
-                  class = "info-card",
-                  HTML("Traditional approach: fit the full model with all predictors, then evaluate using ANOVA, correlation, and VIF.")
-                ),
-                withSpinner(uiOutput("mb_full_stats"), color = "#6366f1", type = 4),
-                div(class = "table-card", h4("Coefficients"), DTOutput("mb_full_coef")),
-                div(class = "table-card", h4("ANOVA Table"), DTOutput("mb_full_anova_tbl"))
-              ),
-              div(
-                class = "content-card",
-                div(class = "card-header", "🔗 Pairwise Correlation"),
-                div(
-                  class = "info-card",
-                  HTML("Pairwise correlations between the response and predictors.")
-                ),
-                withSpinner(plotOutput("mb_corr_plot", height = "480px"), color = "#6366f1", type = 4)
-              ),
-              div(
-                class = "content-card",
-                div(class = "card-header", "🧪 Best Subset Selection"),
-                div(
-                  class = "info-card",
-                  HTML("All possible regressions ranked by MSEp, Adjusted R², Predicted R², Mallows' Cp, AIC, and BIC.")
-                ),
-                withSpinner(uiOutput("mb_best_summary"), color = "#6366f1", type = 4),
-                div(class = "table-card", h4("All Possible Regressions"), DTOutput("mb_all_subsets")),
-                div(class = "table-card", h4("Mallows' Cp vs p"), withSpinner(plotOutput("mb_cp_plot", height = "420px"), color = "#6366f1", type = 4))
-              ),
-              div(
-                class = "content-card",
-                div(class = "card-header", "➡️ Forward Selection"),
-                div(
-                  class = "info-card",
-                  HTML("Forward stepwise selection using p-value entry threshold (penter = 0.10).")
-                ),
-                withSpinner(uiOutput("mb_forward_ui"), color = "#6366f1", type = 4)
-              ),
-              div(
-                class = "content-card",
-                div(class = "card-header", "⬅️ Backward Selection"),
-                div(
-                  class = "info-card",
-                  HTML("Backward stepwise elimination using p-value removal threshold (prem = 0.15).")
-                ),
-                withSpinner(uiOutput("mb_backward_ui"), color = "#6366f1", type = 4)
-              ),
-              div(
-                class = "content-card",
-                div(class = "card-header", "🔄 Stepwise Selection"),
-                div(
-                  class = "info-card",
-                  HTML("Bidirectional stepwise selection (penter = 0.10, prem = 0.15).")
-                ),
-                withSpinner(uiOutput("mb_stepwise_ui"), color = "#6366f1", type = 4)
-              ),
-              div(
-                class = "content-card",
-                div(class = "card-header", "✅ Recommended Final Model"),
-                div(
-                  class = "info-card success",
-                  HTML("Model selected by minimizing Mallows' |Cp − p|. Compare across criteria above to confirm.")
-                ),
-                withSpinner(uiOutput("mb_final_stats"), color = "#6366f1", type = 4),
-                div(class = "table-card", h4("Final Model Coefficients"), DTOutput("mb_final_coef")),
-                div(class = "table-card", h4("Final Model VIF"), DTOutput("mb_final_vif_tbl"))
-              )
-            ),
+            tabPanel("Model Building", value = "tab_model_building", uiOutput("model_building_ui")),
 
             tabPanel("Influence Diagnostics", value = "tab_influence",
               uiOutput("influence_ui")

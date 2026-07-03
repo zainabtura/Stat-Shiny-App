@@ -797,6 +797,35 @@ register_regression_server <- function(input, output, session, state) {
     }
   })
   
+  output$corrections_ui <- renderUI({
+    tagList(
+      div(
+        class = "content-card",
+        div(class = "card-header", "\U0001F4E6 Box-Cox Transformation"),
+        uiOutput("boxcox_info"),
+        withSpinner(plotOutput("boxcox_plot", height = "500px"), color = "#6366f1", type = 4)
+      ),
+      div(
+        class = "content-card",
+        div(class = "card-header", "\U0001F4C8 Box-Tidwell Test for Linearity"),
+        div(
+          class = "info-card",
+          HTML("Tests whether predictors need power transformations. Non-significant p-values suggest linear relationships are appropriate.")
+        ),
+        withSpinner(uiOutput("box_tidwell"), color = "#6366f1", type = 4)
+      ),
+      div(
+        class = "content-card",
+        div(class = "card-header", "⚖️ Weighted Least Squares (WLS)"),
+        div(
+          class = "info-card",
+          HTML("WLS corrects heteroscedasticity by giving less weight to observations with higher variance.")
+        ),
+        withSpinner(uiOutput("wls_summary"), color = "#6366f1", type = 4)
+      )
+    )
+  })
+
   output$boxcox_plot <- renderPlot({
     model <- adequacy_model()
     y_vals <- model.response(model.frame(model))
@@ -1117,6 +1146,80 @@ register_regression_server <- function(input, output, session, state) {
     built_model
   })
   
+  output$model_building_ui <- renderUI({
+    tagList(
+      div(
+        class = "content-card",
+        div(class = "card-header", "\U0001F4CB Full Model Summary"),
+        div(
+          class = "info-card",
+          HTML("Traditional approach: fit the full model with all predictors, then evaluate using ANOVA, correlation, and VIF.")
+        ),
+        withSpinner(uiOutput("mb_full_stats"), color = "#6366f1", type = 4),
+        div(class = "table-card", h4("Coefficients"), DTOutput("mb_full_coef")),
+        div(class = "table-card", h4("ANOVA Table"), DTOutput("mb_full_anova_tbl"))
+      ),
+      div(
+        class = "content-card",
+        div(class = "card-header", "\U0001F517 Pairwise Correlation"),
+        div(
+          class = "info-card",
+          HTML("Pairwise correlations between the response and predictors.")
+        ),
+        withSpinner(plotOutput("mb_corr_plot", height = "480px"), color = "#6366f1", type = 4)
+      ),
+      div(
+        class = "content-card",
+        div(class = "card-header", "\U0001F9EA Best Subset Selection"),
+        div(
+          class = "info-card",
+          HTML("All possible regressions ranked by MSEp, Adjusted R², Predicted R², Mallows' Cp, AIC, and BIC.")
+        ),
+        withSpinner(uiOutput("mb_best_summary"), color = "#6366f1", type = 4),
+        div(class = "table-card", h4("All Possible Regressions"), DTOutput("mb_all_subsets")),
+        div(class = "table-card", h4("Mallows' Cp vs p"), withSpinner(plotOutput("mb_cp_plot", height = "420px"), color = "#6366f1", type = 4))
+      ),
+      div(
+        class = "content-card",
+        div(class = "card-header", "➡️ Forward Selection"),
+        div(
+          class = "info-card",
+          HTML("Forward stepwise selection using p-value entry threshold (penter = 0.10).")
+        ),
+        withSpinner(uiOutput("mb_forward_ui"), color = "#6366f1", type = 4)
+      ),
+      div(
+        class = "content-card",
+        div(class = "card-header", "⬅️ Backward Selection"),
+        div(
+          class = "info-card",
+          HTML("Backward stepwise elimination using p-value removal threshold (prem = 0.15).")
+        ),
+        withSpinner(uiOutput("mb_backward_ui"), color = "#6366f1", type = 4)
+      ),
+      div(
+        class = "content-card",
+        div(class = "card-header", "\U0001F504 Stepwise Selection"),
+        div(
+          class = "info-card",
+          HTML("Bidirectional stepwise selection (penter = 0.10, prem = 0.15).")
+        ),
+        withSpinner(uiOutput("mb_stepwise_ui"), color = "#6366f1", type = 4)
+      ),
+      div(
+        class = "content-card",
+        div(class = "card-header", "✅ Recommended Final Model"),
+        div(
+          class = "info-card success",
+          HTML("Model selected by minimizing Mallows' |Cp − p|. Compare across criteria above to confirm.")
+        ),
+        withSpinner(uiOutput("mb_final_stats"), color = "#6366f1", type = 4),
+        div(class = "table-card", h4("Final Model Coefficients"), DTOutput("mb_final_coef")),
+        div(class = "table-card", h4("Final Model VIF"), DTOutput("mb_final_vif_tbl"))
+      )
+    )
+  })
+
   output$mb_full_stats <- renderUI({
     bm <- mb_full_model()
     s <- summary(bm$model)
