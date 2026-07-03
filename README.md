@@ -52,21 +52,24 @@ The app opens at [http://localhost:3838](http://localhost:3838).
 
 ```
 .
-├── app.R                  # Entry point
+├── app.R                    # Entry point
 ├── R/
-│   ├── helpers.R          # Utility functions and UI builders
-│   ├── styles.R           # CSS theme
-│   ├── ui.R               # Main UI layout
-│   ├── server.R           # Server composition root
-│   ├── server_state.R     # Centralized reactive state
-│   ├── server_analysis.R  # Descriptive & inferential modules
-│   ├── server_regression.R# Regression module
-│   ├── server_indicator.R # Indicator variables module
-│   ├── server_influence.R # Influence diagnostics module
-│   ├── server_polynomial.R# Polynomial regression module
-│   ├── server_spline.R    # Spline regression module
-│   └── server_glm.R       # GLM module
-└── datasets/              # Built-in sample datasets
+│   ├── helpers.R            # Utility functions and UI builders
+│   ├── styles.R             # CSS theme
+│   ├── ui.R                 # Main UI layout
+│   ├── server.R             # Server composition root
+│   ├── server_state.R       # Centralized reactive state
+│   ├── server_core.R        # Navigation and routing
+│   ├── server_dashboard.R   # Dashboard summary cards
+│   ├── server_descriptive.R # Upload and descriptive analysis
+│   ├── server_analysis.R    # Inferential statistics
+│   ├── server_regression.R  # Regression, adequacy, and model building
+│   ├── server_indicator.R   # Indicator variables
+│   ├── server_influence.R   # Influence diagnostics
+│   ├── server_polynomial.R  # Polynomial regression
+│   ├── server_spline.R      # Spline regression
+│   └── server_glm.R         # GLM (logistic, probit, Poisson)
+└── datasets/                # Built-in sample datasets
 ```
 
 ## Deployment
@@ -76,6 +79,10 @@ Deployed on [shinyapps.io](https://www.shinyapps.io/) via the `rsconnect` packag
 ```r
 rsconnect::deployApp(".", appName = "STAT413-TEAM2", account = "universalanalyzer")
 ```
+
+## License
+
+MIT
 
 ## Team
 
