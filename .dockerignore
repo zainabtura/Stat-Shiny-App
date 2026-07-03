@@ -1,0 +1,10 @@
+.git/
+.claude/
+.codex_backup_*/
+.DS_Store
+rsconnect/
+poster.pptx
+*.md
+.gitignore
+.rsconnectignore
+.dockerignore

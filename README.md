@@ -72,6 +72,24 @@ The app opens at [http://localhost:3838](http://localhost:3838).
 └── datasets/                # Built-in sample datasets
 ```
 
+## Docker
+
+Run the app in a container without installing R or any dependencies:
+
+```bash
+docker pull ghcr.io/zainabtura/stat-shiny-app:latest
+docker run -p 3838:3838 ghcr.io/zainabtura/stat-shiny-app:latest
+```
+
+Then open [http://localhost:3838](http://localhost:3838).
+
+To build locally:
+
+```bash
+docker build -t stat-shiny-app .
+docker run -p 3838:3838 stat-shiny-app
+```
+
 ## Deployment
 
 Deployed on [shinyapps.io](https://www.shinyapps.io/) via the `rsconnect` package:
